@@ -172,42 +172,52 @@ The webhook sends the following payload to N8N:
     "data": {
         "success": true,
         "timestamp": "2025-01-27T10:30:00.000Z",
-        "date": "2025-08-06",
-        "dateFormatted": "Tuesday, August 6, 2025",
-        "totalRecordsToday": 15,
-        "uniqueEmployeesToday": 8,
-        "summary": [
+        "requestedDate": "2025-08-04",
+        "dateFormatted": "Monday, 4 August 2025",
+        "totalRecordsForDate": 103,
+        "uniqueEmployeesForDate": 60,
+        "data": [
             {
-                "deviceUserId": "1",
-                "employeeName": "John Doe",
+                "deviceUserId": "121",
+                "employeeName": "Zunarshahzad",
                 "employeeRole": 0,
                 "totalRecords": 2,
                 "firstEntry": {
-                    "deviceUserId": "1",
-                    "employeeName": "John Doe",
-                    "recordTime": "2025-08-06T08:30:00.000Z",
-                    "timeOnly": "08:30:00"
+                    "deviceUserId": "121",
+                    "employeeName": "Zunarshahzad",
+                    "recordTime": "2025-08-04T12:43:54.000Z",
+                    "timeOnly": "17:43:54"
                 },
                 "lastEntry": {
-                    "deviceUserId": "1",
-                    "employeeName": "John Doe",
-                    "recordTime": "2025-08-06T17:30:00.000Z",
-                    "timeOnly": "17:30:00"
+                    "deviceUserId": "121",
+                    "employeeName": "Zunarshahzad",
+                    "recordTime": "2025-08-04T18:15:30.000Z",
+                    "timeOnly": "23:15:30"
                 }
-            }
-        ],
-        "detailedRecords": [
-            {
-                "deviceUserId": "1",
-                "employeeName": "John Doe",
-                "recordTime": "2025-08-06T08:30:00.000Z",
-                "timeOnly": "08:30:00",
-                "recordDate": "06/08/2025"
             }
         ]
     }
 }
 ```
+
+### Data Structure Explanation
+
+The API now returns a **unified data structure** that groups attendance records by employee:
+
+- **`data`**: Array of employee attendance summaries
+- **Each employee record contains**:
+  - `deviceUserId`: Employee ID from the device
+  - `employeeName`: Employee's name
+  - `employeeRole`: Employee's role/level
+  - `totalRecords`: Total number of attendance records for this employee
+  - `firstEntry`: First attendance record (check-in time)
+  - `lastEntry`: Last attendance record (check-out time)
+
+This structure is much more useful than the previous split between `summary` and `detailedRecords` because it:
+- ✅ Groups data by employee
+- ✅ Shows check-in and check-out times clearly
+- ✅ Provides total record count per employee
+- ✅ Eliminates redundant chronological data
 
 ## Usage Examples
 

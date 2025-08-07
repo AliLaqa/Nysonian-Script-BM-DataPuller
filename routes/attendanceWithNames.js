@@ -98,8 +98,7 @@ router.get('/date/:date', async (req, res) => {
             }),
             totalRecordsForDate: enrichedLogs.length,
             uniqueEmployeesForDate: employeeSummary.length,
-            summary: employeeSummary,
-            detailedRecords: enrichedLogs.sort((a, b) => new Date(a.recordTime) - new Date(b.recordTime))
+            data: employeeSummary
         });
 
     } catch (error) {
@@ -139,8 +138,7 @@ router.get('/today', async (req, res) => {
             dateFormatted: 'Tuesday, August 6, 2025',
             totalRecordsToday: enrichedLogs.length,
             uniqueEmployeesToday: employeeSummary.length,
-            summary: employeeSummary,
-            detailedRecords: enrichedLogs.sort((a, b) => new Date(a.recordTime) - new Date(b.recordTime))
+            data: employeeSummary
         });
 
     } catch (error) {
