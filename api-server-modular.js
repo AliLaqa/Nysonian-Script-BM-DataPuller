@@ -1,4 +1,4 @@
-// api-server.js - Express API server for n8n integration (Modular Version)
+// api-server-modular.js - Modular Express API server for n8n integration
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -41,7 +41,7 @@ app.use((err, req, res, next) => {
 
 // Start server
 const server = app.listen(PORT, HOST, () => {
-    console.log(`\n🚀 ZKTeco MB460 API Server started!`);
+    console.log(`\n🚀 ZKTeco MB460 API Server (Modular) started!`);
     console.log(`📍 Server: http://${HOST}:${PORT}`);
     console.log(`🔗 Health Check: http://${HOST}:${PORT}/health`);
     console.log(`📊 Attendance API: http://${HOST}:${PORT}/attendance`);

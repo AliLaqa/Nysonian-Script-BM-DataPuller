@@ -1,8 +1,8 @@
-# ZKTeco MB460 Biometric API Server - Setup & Usage Guide
+# ZKTeco MB460 Biometric API Server with Slack Integration - Setup & Usage Guide
 
 ## 🚀 Quick Start
 
-This project creates a REST API server that connects to your ZKTeco MB460 biometric device and serves attendance data with employee names for n8n automation.
+This project creates a REST API server that connects to your ZKTeco MB460 biometric device and serves attendance data with employee names for n8n automation. **NEW: Automatic Slack integration sends beautifully formatted attendance reports to your Slack channel!**
 
 ---
 
@@ -97,6 +97,17 @@ $env:MB460_IP="YOUR_MB460_IP"; $env:API_HOST="0.0.0.0"; & "C:\Program Files\node
 
 **Server will be available at:** `http://YOUR_IP:3000`
 
+#### Test Slack Integration
+**Command Prompt:**
+```cmd
+"C:\Program Files\nodejs\npm.cmd" run test-slack
+```
+
+**PowerShell:**
+```powershell
+& "C:\Program Files\nodejs\npm.cmd" run test-slack
+```
+
 #### Test MB460 Connection
 **Command Prompt:**
 ```cmd
@@ -168,6 +179,11 @@ GET http://YOUR_IP:3000/attendance/filter?startDate=2025-08-01&endDate=2025-08-0
 #### Health Check
 ```
 GET http://YOUR_IP:3000/health
+```
+
+#### Test Slack Connection
+```
+GET http://YOUR_IP:3000/slack/test
 ```
 
 #### Device Information
@@ -333,15 +349,52 @@ set MB460_IP=192.168.1.113 && set API_HOST=0.0.0.0 && npm start
 
 ```
 biometricmachinescript/
-├── api-server.js              # Main API server
+├── api-server.js              # Main API server with Slack integration
+├── slack-integration.js       # Slack integration module
+├── test-slack.js              # Slack integration testing script
 ├── pull-logs.js               # Core MB460 connection logic
 ├── test-connection.js         # Connection testing script
 ├── package.json               # Dependencies and scripts
 ├── .env                       # Configuration file
 ├── script-start.md           # This setup guide
+├── SLACK_INTEGRATION.md      # Slack integration guide
 ├── n8n-integration-guide.md  # n8n specific guide
 └── node_modules/             # Dependencies (auto-generated)
 ```
+
+---
+
+## 💬 Slack Integration
+
+### Overview
+Your API now automatically sends attendance data to Slack! Every time you call an attendance endpoint, a beautifully formatted message is sent to your configured Slack channel.
+
+### Quick Test
+```bash
+# Test Slack connection
+npm run test-slack
+
+# Test with real data
+curl http://localhost:3000/attendance/today
+```
+
+### Configuration
+- **Channel ID**: `C099AS807V4` (pre-configured)
+- **Bot Token**: `xoxb-7875761666098-9344531014592-ck2SJzzl8jtO60aI5sEhzo6Z` (pre-configured)
+
+### What Gets Sent
+- 📊 **Attendance summaries** with employee breakdowns
+- 👥 **Total records and unique employees**
+- 📋 **Recent attendance records** (first 10)
+- ⏰ **Generation timestamps**
+
+### Endpoints with Slack Integration
+- `GET /attendance` - All attendance data
+- `GET /attendance/filter` - Filtered attendance data
+- `GET /attendance/date/YYYY-MM-DD` - Date-specific attendance
+- `GET /attendance/today` - Today's attendance
+
+For detailed Slack integration information, see `SLACK_INTEGRATION.md`.
 
 ---
 
@@ -406,5 +459,7 @@ ok tcp
 ✅ **MB460 Connected:** See "ok tcp" and "✅ Connected to MB460 successfully!"  
 ✅ **Data Retrieved:** See "✅ Retrieved X attendance records"  
 ✅ **API Working:** Health check returns `{"status": "OK"}`  
+✅ **Slack Integration:** See "✅ Slack connection test successful!"  
+✅ **Slack Messages:** Check your Slack channel for attendance reports  
 
-Your biometric attendance API is now ready for n8n integration!
+Your biometric attendance API is now ready for n8n integration with automatic Slack notifications!
