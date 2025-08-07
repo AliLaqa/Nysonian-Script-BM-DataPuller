@@ -8,6 +8,7 @@ const healthRoutes = require('./routes/health');
 const attendanceRoutes = require('./routes/attendance');
 const attendanceWithNamesRoutes = require('./routes/attendanceWithNames');
 const deviceRoutes = require('./routes/device');
+const webhookRoutes = require('./routes/webhook');
 
 const app = express();
 const PORT = process.env.API_PORT || 3000;
@@ -28,6 +29,7 @@ app.use('/', healthRoutes);                    // Health check and documentation
 app.use('/attendance', attendanceRoutes);      // Basic attendance endpoints
 app.use('/attendance', attendanceWithNamesRoutes); // Attendance with employee names
 app.use('/device', deviceRoutes);              // Device information endpoints
+app.use('/webhook', webhookRoutes);            // Webhook integration endpoints
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -46,6 +48,7 @@ const server = app.listen(PORT, HOST, () => {
     console.log(`🔗 Health Check: http://${HOST}:${PORT}/health`);
     console.log(`📊 Attendance API: http://${HOST}:${PORT}/attendance`);
     console.log(`📱 Device Info: http://${HOST}:${PORT}/device/info`);
+    console.log(`🔗 Webhook API: http://${HOST}:${PORT}/webhook`);
     console.log(`\n⚙️ Configuration:`);
     console.log(`   MB460 Device: ${process.env.MB460_IP}:${process.env.MB460_PORT}`);
     console.log(`\n🎯 Ready for n8n integration!`);
