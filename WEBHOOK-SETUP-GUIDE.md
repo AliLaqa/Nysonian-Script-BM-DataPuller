@@ -4,22 +4,19 @@ This guide explains how to set up and use the webhook integration feature that f
 
 ## Overview
 
-The webhook integration provides a new API endpoint that:
-1. Fetches attendance data from the today's API (`/attendance/today`)
-2. Sends this data to an N8N webhook URL
-3. Returns detailed status information about the process
+The webhook integration provides API endpoints that:
+1. Fetch attendance data from the today's API (`/attendance/today`) or specific date API (`/attendance/date/{date}`)
+2. Send this data to an N8N webhook URL
+3. Return detailed status information about the process
 
 ## API Endpoints
 
-### 1. POST `/webhook/today`
+### 1. GET `/webhook/today`
 **Purpose**: Fetch today's attendance data and send it to an N8N webhook
 
-**Request Body**:
-```json
-{
-    "webhookUrl": "https://your-n8n-instance.com/webhook/your-webhook-id"
-}
-```
+**Method**: GET
+
+**URL**: `http://192.168.1.140:3000/webhook/today`
 
 **Response**:
 ```json
@@ -37,7 +34,7 @@ The webhook integration provides a new API endpoint that:
         "step2": {
             "status": "completed",
             "action": "Sent data to N8N webhook",
-            "webhookUrl": "https://your-n8n-instance.com/webhook/your-webhook-id",
+            "webhookUrl": "https://nysonian.app.n8n.cloud/webhook/today-bm",
             "statusCode": 200
         }
     },
@@ -49,7 +46,48 @@ The webhook integration provides a new API endpoint that:
 }
 ```
 
-### 2. GET `/webhook/test`
+### 2. GET `/webhook/date/{date}`
+**Purpose**: Fetch attendance data from a specific date and send it to an N8N webhook
+
+**Method**: GET
+
+**URL**: `http://192.168.1.140:3000/webhook/date/{date}`
+
+**Parameters**:
+- `{date}`: Date in YYYY-MM-DD format (e.g., `2025-08-04`)
+
+**Example**: `GET /webhook/date/2025-08-04`
+
+**Response**:
+```json
+{
+    "success": true,
+    "timestamp": "2025-01-27T10:30:00.000Z",
+    "message": "Data successfully sent to N8N webhook for 2025-08-04",
+    "requestedDate": "2025-08-04",
+    "process": {
+        "step1": {
+            "status": "completed",
+            "action": "Fetched attendance data for 2025-08-04",
+            "recordCount": 95,
+            "employeeCount": 52
+        },
+        "step2": {
+            "status": "completed",
+            "action": "Sent data to N8N webhook",
+            "webhookUrl": "https://nysonian.app.n8n.cloud/webhook/today-bm",
+            "statusCode": 200
+        }
+    },
+    "summary": {
+        "totalRecordsForDate": 95,
+        "uniqueEmployeesForDate": 52,
+        "webhookResponse": { /* N8N response data */ }
+    }
+}
+```
+
+### 3. GET `/webhook/test`
 **Purpose**: Test endpoint to verify webhook functionality
 
 **Response**:
@@ -114,11 +152,11 @@ https://nysonian.app.n8n.cloud/webhook-test/2b5a00ef-c581-4265-be0f-5ca235f4aec8
 1. **Click "Listen for test event"** in the webhook node
 2. **Make a test call** to your webhook endpoint:
    ```bash
-   curl -X POST http://192.168.1.140:3000/webhook/today \
-     -H "Content-Type: application/json" \
-     -d '{
-       "webhookUrl": "https://nysonian.app.n8n.cloud/webhook-test/2b5a00ef-c581-4265-be0f-5ca235f4aec8"
-     }'
+   # Test today's data
+   curl -X GET http://192.168.1.140:3000/webhook/today
+   
+   # Test specific date data
+   curl -X GET http://192.168.1.140:3000/webhook/date/2025-08-04
    ```
 
 3. **Check N8N** - you should see the data appear in the webhook node
@@ -180,11 +218,10 @@ The webhook sends the following payload to N8N:
 curl -X GET http://192.168.1.140:3000/webhook/test
 
 # Send today's data to N8N webhook
-curl -X POST http://192.168.1.140:3000/webhook/today \
-  -H "Content-Type: application/json" \
-  -d '{
-    "webhookUrl": "https://nysonian.app.n8n.cloud/webhook-test/2b5a00ef-c581-4265-be0f-5ca235f4aec8"
-  }'
+curl -X GET http://192.168.1.140:3000/webhook/today
+
+# Send specific date data to N8N webhook
+curl -X GET http://192.168.1.140:3000/webhook/date/2025-08-04
 ```
 
 ### Using JavaScript/Fetch
@@ -195,18 +232,15 @@ const testResponse = await fetch('http://192.168.1.140:3000/webhook/test');
 const testData = await testResponse.json();
 console.log(testData);
 
-// Send to webhook
-const webhookResponse = await fetch('http://192.168.1.140:3000/webhook/today', {
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-        webhookUrl: 'https://nysonian.app.n8n.cloud/webhook-test/2b5a00ef-c581-4265-be0f-5ca235f4aec8'
-    })
-});
-const webhookData = await webhookResponse.json();
-console.log(webhookData);
+// Send today's data to webhook
+const todayResponse = await fetch('http://192.168.1.140:3000/webhook/today');
+const todayData = await todayResponse.json();
+console.log(todayData);
+
+// Send specific date data to webhook
+const dateResponse = await fetch('http://192.168.1.140:3000/webhook/date/2025-08-04');
+const dateData = await dateResponse.json();
+console.log(dateData);
 ```
 
 ### Using PowerShell
@@ -215,12 +249,11 @@ console.log(webhookData);
 # Test endpoint
 Invoke-RestMethod -Uri "http://192.168.1.140:3000/webhook/test" -Method GET
 
-# Send to webhook
-$body = @{
-    webhookUrl = "https://nysonian.app.n8n.cloud/webhook-test/2b5a00ef-c581-4265-be0f-5ca235f4aec8"
-} | ConvertTo-Json
+# Send today's data to webhook
+Invoke-RestMethod -Uri "http://192.168.1.140:3000/webhook/today" -Method GET
 
-Invoke-RestMethod -Uri "http://192.168.1.140:3000/webhook/today" -Method POST -Body $body -ContentType "application/json"
+# Send specific date data to webhook
+Invoke-RestMethod -Uri "http://192.168.1.140:3000/webhook/date/2025-08-04" -Method GET
 ```
 
 ## Error Handling
@@ -306,6 +339,22 @@ The webhook functionality requires the `axios` package for HTTP requests. Instal
 npm install axios
 ```
 
+## Available Endpoints Summary
+
+| Endpoint | Method | Purpose | Example |
+|----------|--------|---------|---------|
+| `/webhook/today` | GET | Get today's attendance data and send to webhook | `GET /webhook/today` |
+| `/webhook/date/{date}` | GET | Get specific date attendance data and send to webhook | `GET /webhook/date/2025-08-04` |
+| `/webhook/test` | GET | Test endpoint with instructions | `GET /webhook/test` |
+
+### Features
+
+- **✅ DRY Principle**: Clean, reusable code architecture
+- **✅ Date Validation**: Proper YYYY-MM-DD format validation
+- **✅ Error Handling**: Comprehensive error responses
+- **✅ Backward Compatibility**: Existing endpoints still work
+- **✅ Consistent API**: Unified response format across endpoints
+
 ## Next Steps
 
 Once the basic webhook is working, you can:
@@ -315,3 +364,4 @@ Once the basic webhook is working, you can:
 3. **Process the data** in N8N workflows
 4. **Store data** in databases or other systems
 5. **Send notifications** based on attendance data
+6. **Test with different dates** using the new date endpoint

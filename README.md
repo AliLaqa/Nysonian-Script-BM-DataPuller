@@ -10,16 +10,20 @@ Nysonian-Script-BM-DataPuller/
 │   ├── attendance.js            # Basic attendance endpoints
 │   ├── attendanceWithNames.js   # Attendance with employee names
 │   ├── device.js                # Device information endpoints
-│   └── health.js                # Health check and documentation
+│   ├── health.js                # Health check and documentation
+│   └── webhook.js               # Webhook integration endpoints
 ├── 📁 utils/                    # Shared utility functions
 │   └── zkHelper.js              # ZK device helper functions
 ├── api-server.js                # Main server (modular structure)
 ├── api-server-modular.js        # Alternative modular server
 ├── pull-logs.js                 # Core biometric device connection
 ├── test-connection.js           # Connection testing utility
+├── test-webhook.js              # Webhook testing utility
+├── test-date-webhook.js         # Date-specific webhook testing
 ├── package.json                 # Dependencies and scripts
 ├── script-start.md              # Setup and usage guide
 ├── n8n-integration-guide.md     # n8n integration guide
+├── WEBHOOK-SETUP-GUIDE.md      # Webhook integration guide
 └── README.md                    # This file
 ```
 
@@ -66,11 +70,27 @@ npm test
 - `GET /attendance/date/YYYY-MM-DD` - Specific date with employee names
 - `GET /attendance/today` - Today's attendance with employee names
 
+### Webhook Integration
+- `GET /webhook/today` - Get today's data and send to N8N webhook
+- `GET /webhook/date/{date}` - Get specific date data and send to N8N webhook
+- `GET /webhook/test` - Test endpoint with instructions
+
 ### Device Information
 - `GET /device/info` - Device information and status
 - `GET /device/status` - Device connection status
 
 ## 🔧 Development
+
+### Webhook Integration Features
+
+The webhook integration provides seamless connectivity with N8N automation workflows:
+
+- **✅ Today's Data**: `GET /webhook/today` - Automatically fetches and sends today's attendance data
+- **✅ Date-Specific Data**: `GET /webhook/date/{date}` - Fetches and sends data from any specific date
+- **✅ DRY Architecture**: Clean, reusable code following the DRY principle
+- **✅ Error Handling**: Comprehensive error responses with detailed information
+- **✅ Date Validation**: Proper YYYY-MM-DD format validation
+- **✅ Consistent API**: Unified response format across all endpoints
 
 ### Code Organization
 
@@ -80,6 +100,7 @@ Each route file handles a specific group of endpoints:
 - **`attendanceWithNames.js`** - Attendance data enriched with employee names
 - **`device.js`** - Device information and status endpoints
 - **`health.js`** - Health checks and API documentation
+- **`webhook.js`** - Webhook integration endpoints for N8N
 
 #### Utilities (`/utils/`)
 Shared helper functions:
@@ -98,6 +119,9 @@ Shared helper functions:
 - ✅ Implement proper error handling
 - ✅ Add request logging
 - ✅ Use environment variables for configuration
+- ✅ Follow DRY principle for code reusability
+- ✅ Provide comprehensive error responses
+- ✅ Maintain backward compatibility
 - ✅ Follow consistent naming conventions
 - ✅ Add JSDoc comments for functions
 
