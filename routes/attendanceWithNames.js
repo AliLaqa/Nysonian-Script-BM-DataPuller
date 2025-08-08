@@ -24,7 +24,8 @@ async function processAttendanceWithNames(zkInstance, dateFilter = null) {
     if (dateFilter) {
         filteredLogs = logs.data.filter(record => {
             const recordDate = new Date(record.recordTime);
-            const recordDateStr = recordDate.toISOString().split('T')[0];
+            // Use local date formatting to ensure consistent timezone handling
+            const recordDateStr = recordDate.toLocaleDateString('en-CA'); // YYYY-MM-DD format
             return recordDateStr === dateFilter;
         });
     }
@@ -116,7 +117,7 @@ router.get('/date/:date', async (req, res) => {
     }
 });
 
-// Get today's attendance with employee names (August 6, 2025)
+// Get today's attendance with employee names
 router.get('/today', async (req, res) => {
     let zkInstance = null;
 
@@ -125,19 +126,24 @@ router.get('/today', async (req, res) => {
         zkInstance = createZKInstance();
         await zkInstance.createSocket();
 
-        // Filter for today's date (August 6, 2025)
-        const today = new Date('2025-08-06');
-        const todayStr = today.toISOString().split('T')[0]; // '2025-08-06'
+        // Get today's actual date dynamically
+        const today = new Date();
+        const todayStr = today.toLocaleDateString('en-CA'); // YYYY-MM-DD format
         
         const { enrichedLogs, employeeSummary } = await processAttendanceWithNames(zkInstance, todayStr);
 
         res.json({
             success: true,
             timestamp: new Date().toISOString(),
-            date: '2025-08-06',
-            dateFormatted: 'Tuesday, August 6, 2025',
-            totalRecordsToday: enrichedLogs.length,
-            uniqueEmployeesToday: employeeSummary.length,
+            requestedDate: todayStr,
+            dateFormatted: today.toLocaleDateString('en-GB', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            }),
+            totalRecordsForDate: enrichedLogs.length,
+            uniqueEmployeesForDate: employeeSummary.length,
             data: employeeSummary
         });
 
@@ -147,8 +153,8 @@ router.get('/today', async (req, res) => {
             success: false,
             timestamp: new Date().toISOString(),
             error: error.message,
-            date: '2025-08-06',
-            totalRecordsToday: 0,
+            requestedDate: new Date().toLocaleDateString('en-CA'),
+            totalRecordsForDate: 0,
             data: []
         });
     } finally {

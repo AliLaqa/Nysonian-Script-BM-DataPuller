@@ -151,7 +151,7 @@ Once the server is running, these endpoints will be available:
 
 ### 📊 **Main Endpoints**
 
-#### Get Today's Attendance (August 6, 2025)
+#### Get Today's Attendance
 ```
 GET http://YOUR_IP:3000/attendance/today
 ```

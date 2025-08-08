@@ -19,7 +19,7 @@ Your local API server provides these endpoints for n8n integration:
 ```
 GET http://YOUR_IP:3000/attendance/today
 ```
-**Returns:** Today's attendance with employee names (August 6, 2025)
+**Returns:** Today's attendance with employee names (current date)
 
 #### Get Attendance for Specific Date
 ```

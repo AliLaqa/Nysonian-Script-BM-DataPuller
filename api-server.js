@@ -2,6 +2,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const axios = require('axios');
 
 // Import route modules
 const healthRoutes = require('./routes/health');
@@ -52,6 +53,21 @@ const server = app.listen(PORT, HOST, () => {
     console.log(`\n⚙️ Configuration:`);
     console.log(`   MB460 Device: ${process.env.MB460_IP}:${process.env.MB460_PORT}`);
     console.log(`\n🎯 Ready for n8n integration!`);
+
+    // Call /webhook/today automatically on server start
+    const webhookUrl = `http://${HOST}:${PORT}/webhook/today`;
+    console.log(`\n🔔 Triggering initial webhook: GET ${webhookUrl}`);
+    axios.get(webhookUrl)
+        .then(response => {
+            console.log('✅ Initial /webhook/today call succeeded:', response.data.message || response.data);
+        })
+        .catch(error => {
+            if (error.response) {
+                console.error('❌ Initial /webhook/today call failed:', error.response.data);
+            } else {
+                console.error('❌ Initial /webhook/today call error:', error.message);
+            }
+        });
 });
 
 // Graceful shutdown

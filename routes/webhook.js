@@ -7,11 +7,15 @@ const axios = require('axios');
 async function fetchAttendanceData(date = null) {
     try {
         let apiUrl;
+        // Use 127.0.0.1 instead of localhost to avoid potential DNS issues
+        const host = process.env.API_HOST === '0.0.0.0' ? '127.0.0.1' : (process.env.API_HOST || '127.0.0.1');
+        const port = process.env.API_PORT || 3000;
+        
         if (date) {
-            apiUrl = `http://${process.env.API_HOST || 'localhost'}:${process.env.API_PORT || 3000}/attendance/date/${date}`;
+            apiUrl = `http://${host}:${port}/attendance/date/${date}`;
             console.log(`🔄 Fetching data from date API: ${apiUrl}`);
         } else {
-            apiUrl = `http://${process.env.API_HOST || 'localhost'}:${process.env.API_PORT || 3000}/attendance/today`;
+            apiUrl = `http://${host}:${port}/attendance/today`;
             console.log(`🔄 Fetching data from today's API: ${apiUrl}`);
         }
         
@@ -96,6 +100,14 @@ async function processWebhookRequest(date = null, webhookUrl = 'https://nysonian
             };
         }
         
+        // Debug: Log the data structure received
+        console.log(`📊 Data received from attendance API${dateLabel}:`);
+        console.log(`   Success: ${dataResult.data.success}`);
+        console.log(`   Date: ${dataResult.data.requestedDate}`);
+        console.log(`   Total Records: ${dataResult.data.totalRecordsForDate || 0}`);
+        console.log(`   Unique Employees: ${dataResult.data.uniqueEmployeesForDate || 0}`);
+        console.log(`   Data Structure: ${Object.keys(dataResult.data).join(', ')}`);
+        
         // Step 2: Send data to N8N webhook
         const webhookResult = await sendToN8NWebhook(dataResult.data, webhookUrl);
         
@@ -107,8 +119,8 @@ async function processWebhookRequest(date = null, webhookUrl = 'https://nysonian
                 statusCode: webhookResult.statusCode,
                 dataFetched: true,
                 dataSummary: {
-                    totalRecords: dataResult.data.totalRecordsToday || dataResult.data.totalRecordsForDate || 0,
-                    uniqueEmployees: dataResult.data.uniqueEmployeesToday || dataResult.data.uniqueEmployeesForDate || 0
+                    totalRecords: dataResult.data.totalRecordsForDate || 0,
+                    uniqueEmployees: dataResult.data.uniqueEmployeesForDate || 0
                 }
             };
         }
@@ -121,8 +133,8 @@ async function processWebhookRequest(date = null, webhookUrl = 'https://nysonian
                 step1: {
                     status: 'completed',
                     action: `Fetched attendance data${dateLabel}`,
-                    recordCount: dataResult.data.totalRecordsToday || dataResult.data.totalRecordsForDate || 0,
-                    employeeCount: dataResult.data.uniqueEmployeesToday || dataResult.data.uniqueEmployeesForDate || 0
+                    recordCount: dataResult.data.totalRecordsForDate || 0,
+                    employeeCount: dataResult.data.uniqueEmployeesForDate || 0
                 },
                 step2: {
                     status: 'completed',
@@ -132,8 +144,8 @@ async function processWebhookRequest(date = null, webhookUrl = 'https://nysonian
                 }
             },
             summary: {
-                totalRecords: dataResult.data.totalRecordsToday || dataResult.data.totalRecordsForDate || 0,
-                uniqueEmployees: dataResult.data.uniqueEmployeesToday || dataResult.data.uniqueEmployeesForDate || 0,
+                totalRecords: dataResult.data.totalRecordsForDate || 0,
+                uniqueEmployees: dataResult.data.uniqueEmployeesForDate || 0,
                 webhookResponse: webhookResult.webhookResponse
             }
         };
@@ -317,8 +329,8 @@ router.get('/today', async (req, res) => {
             message: result.message,
             process: result.process,
             summary: {
-                totalRecordsToday: result.summary.totalRecords,
-                uniqueEmployeesToday: result.summary.uniqueEmployees,
+                totalRecordsForDate: result.summary.totalRecords,
+                uniqueEmployeesForDate: result.summary.uniqueEmployees,
                 webhookResponse: result.summary.webhookResponse
             }
         });
