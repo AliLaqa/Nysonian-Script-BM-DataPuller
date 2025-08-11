@@ -42,7 +42,8 @@ app.use((err, req, res, next) => {
     });
 });
 
-// Start server
+// Start server The function you pass to app.listen runs once when the server is ready and listening for requests.
+// So the function is executed immediately when the server is ready.
 const server = app.listen(PORT, HOST, () => {
     console.log(`\n🚀 ZKTeco MB460 API Server started!`);
     console.log(`📍 Server: http://${HOST}:${PORT}`);

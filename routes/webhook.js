@@ -84,29 +84,44 @@ async function sendToN8NWebhook(data, webhookUrl) {
 
 // Helper function to process webhook request (DRY principle)
 async function processWebhookRequest(date = null, webhookUrl = 'https://nysonian.app.n8n.cloud/webhook/today-bm') {
+    const MAX_ATTEMPTS = 3;
+    const DELAY_MS = 10000; // 10 seconds
+    let attempt = 0;
+    let dataResult;
+    while (attempt < MAX_ATTEMPTS) {
+        dataResult = await fetchAttendanceData(date);
+        // Check if data is not empty
+        if (
+            dataResult.success &&
+            dataResult.data &&
+            Array.isArray(dataResult.data.data) &&
+            dataResult.data.data.length > 0
+        ) {
+            break;
+        }
+        attempt++;
+        if (attempt < MAX_ATTEMPTS) {
+            console.log(`🔁 No data retrieved, retrying in 10 seconds... (Attempt ${attempt + 1} of ${MAX_ATTEMPTS})`);
+            await new Promise(resolve => setTimeout(resolve, DELAY_MS));
+        }
+    }
+    // After retries, if still no data
+    if (
+        !dataResult.success ||
+        !dataResult.data ||
+        !Array.isArray(dataResult.data.data) ||
+        dataResult.data.data.length === 0
+    ) {
+        return {
+            success: false,
+            error: 'No data could be retrieved',
+            details: dataResult.error || 'Empty data after 3 attempts',
+            statusCode: 500
+        };
+    }
     try {
         const dateLabel = date ? ` for ${date}` : ' for today';
         console.log(`🚀 Starting webhook process${dateLabel}...`);
-        
-        // Step 1: Fetch attendance data
-        const dataResult = await fetchAttendanceData(date);
-        
-        if (!dataResult.success) {
-            return {
-                success: false,
-                error: `Failed to fetch attendance data${dateLabel}`,
-                details: dataResult.error,
-                statusCode: 500
-            };
-        }
-        
-        // Debug: Log the data structure received
-        console.log(`📊 Data received from attendance API${dateLabel}:`);
-        console.log(`   Success: ${dataResult.data.success}`);
-        console.log(`   Date: ${dataResult.data.requestedDate}`);
-        console.log(`   Total Records: ${dataResult.data.totalRecordsForDate || 0}`);
-        console.log(`   Unique Employees: ${dataResult.data.uniqueEmployeesForDate || 0}`);
-        console.log(`   Data Structure: ${Object.keys(dataResult.data).join(', ')}`);
         
         // Step 2: Send data to N8N webhook
         const webhookResult = await sendToN8NWebhook(dataResult.data, webhookUrl);
@@ -311,6 +326,7 @@ router.get('/test', async (req, res) => {
 // GET /webhook/today - Trigger webhook with today's data (for POST webhooks)
 router.get('/today', async (req, res) => {
     try {
+        // This will fetch from /attendance/today, which now does NOT include allRecords in its data
         const result = await processWebhookRequest();
         
         if (!result.success) {

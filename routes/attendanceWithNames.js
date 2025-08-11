@@ -54,12 +54,10 @@ async function processAttendanceWithNames(zkInstance, dateFilter = null) {
                 employeeRole: record.employeeRole,
                 totalRecords: 0,
                 firstEntry: null,
-                lastEntry: null,
-                allRecords: []
+                lastEntry: null
             };
         }
         employeeSummary[key].totalRecords++;
-        employeeSummary[key].allRecords.push(record);
         
         if (!employeeSummary[key].firstEntry || new Date(record.recordTime) < new Date(employeeSummary[key].firstEntry.recordTime)) {
             employeeSummary[key].firstEntry = record;
