@@ -60,10 +60,14 @@ async function processAttendanceWithNames(zkInstance, dateFilter = null) {
         employeeSummary[key].totalRecords++;
         
         if (!employeeSummary[key].firstEntry || new Date(record.recordTime) < new Date(employeeSummary[key].firstEntry.recordTime)) {
-            employeeSummary[key].firstEntry = record;
+            // Remove employeeName from firstEntry
+            const { employeeName, ...firstEntryRest } = record;
+            employeeSummary[key].firstEntry = firstEntryRest;
         }
         if (!employeeSummary[key].lastEntry || new Date(record.recordTime) > new Date(employeeSummary[key].lastEntry.recordTime)) {
-            employeeSummary[key].lastEntry = record;
+            // Remove employeeName from lastEntry
+            const { employeeName, ...lastEntryRest } = record;
+            employeeSummary[key].lastEntry = lastEntryRest;
         }
     });
 
