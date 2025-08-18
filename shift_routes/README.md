@@ -4,15 +4,13 @@ Simple reference for all shift-related API endpoints.
 
 ## Endpoints
 
-- `GET /todayShift` - Complete shift data (5 PM yesterday to 3 AM today)
-- `GET /todayShift/employees` - Employee shift summary only
-- `GET /todayShift/checkin` - Shift check-in data (yesterday's last entries)
-- `GET /todayShift/checkout` - Shift check-out data (today's first entries)
+- `GET /attendance/todayShift` - Complete shift data (yesterday's last entry to today's first entry)
+- `GET /attendance/todayShift/checkin` - Shift check-in data (yesterday's last entries)
+- `GET /attendance/todayShift/checkout` - Shift check-out data (today's first entries)
 
 ## Files
 
 - `shiftUtils.js` - Shared utility functions for shift processing
-- `shiftData.js` - Main shift data endpoint (GET /todayShift)
-- `shiftEmployees.js` - Employee shift summary endpoint (GET /todayShift/employees)
-- `shiftCheckin.js` - Shift check-in endpoint (GET /todayShift/checkin)
-- `shiftCheckout.js` - Shift check-out endpoint (GET /todayShift/checkout)
+- `shiftData.js` - Main shift data endpoint (GET /attendance/todayShift)
+- `shiftCheckin.js` - Shift check-in endpoint (GET /attendance/todayShift/checkin)
+- `shiftCheckout.js` - Shift check-out endpoint (GET /attendance/todayShift/checkout)

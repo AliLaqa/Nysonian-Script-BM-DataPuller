@@ -171,7 +171,7 @@ GET http://YOUR_IP:3000/attendance
 
 #### Get Filtered Attendance (Date Range)
 ```
-GET http://YOUR_IP:3000/attendance/filter?startDate=2025-08-01&endDate=2025-08-06
+GET http://YOUR_IP:3000/attendance/filter/2025-08-01&2025-08-06
 ```
 
 ### 🔧 **Utility Endpoints**

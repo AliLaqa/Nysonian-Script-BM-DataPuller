@@ -1,6 +1,6 @@
-# ZKTeco MB460 Biometric API Server
+# ZKTeco MB460 Attendance Data Puller
 
-A Node.js REST API server that connects to ZKTeco MB460 biometric devices and provides attendance data for n8n automation workflows.
+A Node.js API server for fetching attendance data from ZKTeco MB460 devices and integrating with N8N automation workflows.
 
 ## 🏗️ Project Structure
 
@@ -33,7 +33,6 @@ Nysonian-Script-BM-DataPuller/
 │   ├── TODAY-SHIFT-API-GUIDE.md # Today shift API documentation
 │   └── WEBHOOK-SETUP-GUIDE.md   # Webhook integration guide
 ├── api-server.js                # Main server (modular structure)
-├── api-server-modular.js        # Alternative modular server
 ├── pull-logs.js                 # Core biometric device connection
 ├── config.js                    # Configuration settings
 ├── package.json                 # Dependencies and scripts
@@ -43,66 +42,55 @@ Nysonian-Script-BM-DataPuller/
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js LTS (v16 or higher)
-- ZKTeco MB460 device connected to your network
-- Know your MB460's IP address (e.g., `192.168.1.113`)
+- Node.js (v14 or higher)
+- ZKTeco MB460 device connected to network
+- Network access to device IP and port
 
 ### Installation
 ```bash
-# Install dependencies
 npm install
+```
 
-# Configure device settings in .env file
+### Configuration
+Create a `.env` file in the root directory:
+```env
 MB460_IP=192.168.1.113
 MB460_PORT=4370
-API_PORT=3000
 API_HOST=0.0.0.0
+API_PORT=3000
 ```
 
-### Running the Server
-
-#### Start the Server
+### Start Server
 ```bash
-npm start
+node api-server.js
 ```
 
-#### Test Connection
-```bash
-# Test device connection
-node tests/test-connection.js
-
-# Test webhook functionality
-node tests/test-webhook.js
-
-# Test today's shift functionality
-node tests/test-today-shift.js
-```
-
-## 📡 API Endpoints
+## 📊 API Endpoints
 
 ### Health & Documentation
-- `GET /health` - Health check
-- `GET /` - API documentation
+- `GET /attendance/health` - Health check and server status
+- `GET /attendance/apiDocumentation` - API documentation and overview
 
 ### Attendance Data
 - `GET /attendance` - Get all attendance logs
-- `GET /attendance/filter?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD` - Filtered attendance
-- `GET /attendance/date/YYYY-MM-DD` - Specific date with employee names
+- `GET /attendance/filter/YYYY-MM-DD&YYYY-MM-DD` - Filtered attendance by date range (e.g., /attendance/filter/2025-08-14&2025-08-18)
+- `GET /attendance/date/YYYY-MM-DD` - Specific date attendance with employee names
 - `GET /attendance/today` - Today's attendance with employee names
-- `GET /todayShift` - Today's shift data (spanning midnight, 5 PM to 3 AM)
-- `GET /todayShift/employees` - Employee shift summary only
-- `GET /todayShift/checkin` - Shift check-in data (yesterday's last entries)
-- `GET /todayShift/checkout` - Shift check-out data (today's first entries)
+
+### Today's Shift (Spanning Midnight)
+- `GET /attendance/todayShift` - Complete shift data (yesterday's last entry to today's first entry)
+- `GET /attendance/todayShift/checkin` - Shift check-in data (yesterday's last entries)
+- `GET /attendance/todayShift/checkout` - Shift check-out data (today's first entries)
 
 ### Webhook Integration
-- `GET /webhook/today` - Get today's data and send to N8N webhook
-- `GET /webhook/date/{date}` - Get specific date data and send to N8N webhook
-- `GET /webhook/todayShift` - Get today's shift data and send to N8N webhook
-- `GET /webhook/test` - Test endpoint with instructions
+- `GET /attendance/webhook/today` - Get today's data and send to N8N webhook
+- `GET /attendance/webhook/date/{date}` - Get specific date data and send to N8N webhook
+- `GET /attendance/webhook/todayShift` - Get today's shift data and send to N8N webhook
+- `GET /attendance/webhook/test` - Test endpoint with instructions
 
 ### Device Information
-- `GET /device/info` - Device information and status
-- `GET /device/status` - Device connection status
+- `GET /attendance/device/info` - Device information and status
+- `GET /attendance/device/status` - Device connection status
 
 ## 🔧 Development
 
@@ -110,8 +98,8 @@ node tests/test-today-shift.js
 
 The webhook integration provides seamless connectivity with N8N automation workflows:
 
-- **✅ Today's Data**: `GET /webhook/today` - Automatically fetches and sends today's attendance data
-- **✅ Date-Specific Data**: `GET /webhook/date/{date}` - Fetches and sends data from any specific date
+- **✅ Today's Data**: `GET /attendance/webhook/today` - Automatically fetches and sends today's attendance data
+- **✅ Date-Specific Data**: `GET /attendance/webhook/date/{date}` - Fetches and sends data from any specific date
 - **✅ DRY Architecture**: Clean, reusable code following the DRY principle
 - **✅ Error Handling**: Comprehensive error responses with detailed information
 - **✅ Date Validation**: Proper YYYY-MM-DD format validation
@@ -135,7 +123,7 @@ Shared helper functions:
 
 1. **Create or modify route file** in `/routes/`
 2. **Add shared utilities** to `/utils/` if needed
-3. **Mount routes** in `api-server-modular.js`
+3. **Mount routes** in `api-server.js`
 4. **Test** with `npm test`
 
 ### Best Practices

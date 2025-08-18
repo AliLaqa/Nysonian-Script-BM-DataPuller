@@ -11,12 +11,12 @@ The webhook integration provides API endpoints that:
 
 ## API Endpoints
 
-### 1. GET `/webhook/today`
+### 1. GET `/attendance/webhook/today`
 **Purpose**: Fetch today's attendance data and send it to an N8N webhook
 
 **Method**: GET
 
-**URL**: `http://192.168.1.140:3000/webhook/today`
+**URL**: `http://192.168.1.140:3000/attendance/webhook/today`
 
 **Response**:
 ```json
@@ -46,17 +46,17 @@ The webhook integration provides API endpoints that:
 }
 ```
 
-### 2. GET `/webhook/date/{date}`
+### 2. GET `/attendance/webhook/date/{date}`
 **Purpose**: Fetch attendance data from a specific date and send it to an N8N webhook
 
 **Method**: GET
 
-**URL**: `http://192.168.1.140:3000/webhook/date/{date}`
+**URL**: `http://192.168.1.140:3000/attendance/webhook/date/{date}`
 
 **Parameters**:
 - `{date}`: Date in YYYY-MM-DD format (e.g., `2025-08-04`)
 
-**Example**: `GET /webhook/date/2025-08-04`
+**Example**: `GET /attendance/webhook/date/2025-08-04`
 
 **Response**:
 ```json
@@ -153,10 +153,10 @@ https://nysonian.app.n8n.cloud/webhook-test/2b5a00ef-c581-4265-be0f-5ca235f4aec8
 2. **Make a test call** to your webhook endpoint:
    ```bash
    # Test today's data
-   curl -X GET http://192.168.1.140:3000/webhook/today
+   curl -X GET http://192.168.1.140:3000/attendance/webhook/today
    
    # Test specific date data
-   curl -X GET http://192.168.1.140:3000/webhook/date/2025-08-04
+   curl -X GET http://192.168.1.140:3000/attendance/webhook/date/2025-08-04
    ```
 
 3. **Check N8N** - you should see the data appear in the webhook node
@@ -228,10 +228,10 @@ This structure is much more useful than the previous split between `summary` and
 curl -X GET http://192.168.1.140:3000/webhook/test
 
 # Send today's data to N8N webhook
-curl -X GET http://192.168.1.140:3000/webhook/today
+curl -X GET http://192.168.1.140:3000/attendance/webhook/today
 
 # Send specific date data to N8N webhook
-curl -X GET http://192.168.1.140:3000/webhook/date/2025-08-04
+curl -X GET http://192.168.1.140:3000/attendance/webhook/date/2025-08-04
 ```
 
 ### Using JavaScript/Fetch
@@ -243,12 +243,12 @@ const testData = await testResponse.json();
 console.log(testData);
 
 // Send today's data to webhook
-const todayResponse = await fetch('http://192.168.1.140:3000/webhook/today');
+const todayResponse = await fetch('http://192.168.1.140:3000/attendance/webhook/today');
 const todayData = await todayResponse.json();
 console.log(todayData);
 
 // Send specific date data to webhook
-const dateResponse = await fetch('http://192.168.1.140:3000/webhook/date/2025-08-04');
+const dateResponse = await fetch('http://192.168.1.140:3000/attendance/webhook/date/2025-08-04');
 const dateData = await dateResponse.json();
 console.log(dateData);
 ```
@@ -260,10 +260,10 @@ console.log(dateData);
 Invoke-RestMethod -Uri "http://192.168.1.140:3000/webhook/test" -Method GET
 
 # Send today's data to webhook
-Invoke-RestMethod -Uri "http://192.168.1.140:3000/webhook/today" -Method GET
+Invoke-RestMethod -Uri "http://192.168.1.140:3000/attendance/webhook/today" -Method GET
 
 # Send specific date data to webhook
-Invoke-RestMethod -Uri "http://192.168.1.140:3000/webhook/date/2025-08-04" -Method GET
+Invoke-RestMethod -Uri "http://192.168.1.140:3000/attendance/webhook/date/2025-08-04" -Method GET
 ```
 
 ## Error Handling
@@ -353,8 +353,8 @@ npm install axios
 
 | Endpoint | Method | Purpose | Example |
 |----------|--------|---------|---------|
-| `/webhook/today` | GET | Get today's attendance data and send to webhook | `GET /webhook/today` |
-| `/webhook/date/{date}` | GET | Get specific date attendance data and send to webhook | `GET /webhook/date/2025-08-04` |
+| `/attendance/webhook/today` | GET | Get today's attendance data and send to webhook | `GET /attendance/webhook/today` |
+| `/attendance/webhook/date/{date}` | GET | Get specific date attendance data and send to webhook | `GET /attendance/webhook/date/2025-08-04` |
 | `/webhook/test` | GET | Test endpoint with instructions | `GET /webhook/test` |
 
 ### Features

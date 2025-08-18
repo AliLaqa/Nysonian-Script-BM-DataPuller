@@ -35,13 +35,13 @@ class WebhookScheduler {
         
         axios.get(this.webhookUrl)
             .then(response => {
-                console.log('✅ Initial /webhook/today call succeeded:', response.data.message || response.data);
+                console.log('✅ Initial /attendance/webhook/today call succeeded:', response.data.message || response.data);
             })
             .catch(error => {
                 if (error.response) {
-                    console.error('❌ Initial /webhook/today call failed:', error.response.data);
+                    console.error('❌ Initial /attendance/webhook/today call failed:', error.response.data);
                 } else {
-                    console.error('❌ Initial /webhook/today call error:', error.message);
+                    console.error('❌ Initial /attendance/webhook/today call error:', error.message);
                 }
             });
     }
@@ -57,13 +57,13 @@ class WebhookScheduler {
             
             axios.get(this.webhookUrl)
                 .then(response => {
-                    console.log('✅ Scheduled /webhook/today call succeeded:', response.data.message || response.data);
+                    console.log('✅ Scheduled /attendance/webhook/today call succeeded:', response.data.message || response.data);
                 })
                 .catch(error => {
                     if (error.response) {
-                        console.error('❌ Scheduled /webhook/today call failed:', error.response.data);
+                        console.error('❌ Scheduled /attendance/webhook/today call failed:', error.response.data);
                     } else {
-                        console.error('❌ Scheduled /webhook/today call error:', error.message);
+                        console.error('❌ Scheduled /attendance/webhook/today call error:', error.message);
                     }
                 });
         }, intervalMs);

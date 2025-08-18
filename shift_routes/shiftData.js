@@ -4,7 +4,8 @@ const router = express.Router();
 const { processTodayShift } = require('./shiftUtils');
 
 // GET /todayShift - Get today's shift data (spanning midnight)
-router.get('/', async (req, res) => {
+// This route will be mounted at /attendance, so the full path is /attendance/todayShift
+router.get('/todayShift', async (req, res) => {
     try {
         console.log('🔄 Fetching today\'s shift data (spanning midnight)...');
 

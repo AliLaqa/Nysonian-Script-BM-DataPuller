@@ -13,7 +13,6 @@ const attendanceWithNamesRoutes = require('./simple_routes/attendanceWithNames')
 const deviceRoutes = require('./simple_routes/device');
 const webhookRoutes = require('./webhook_routes/webhook');
 const shiftDataRoutes = require('./shift_routes/shiftData');
-const shiftEmployeesRoutes = require('./shift_routes/shiftEmployees');
 const shiftCheckinRoutes = require('./shift_routes/shiftCheckin');
 const shiftCheckoutRoutes = require('./shift_routes/shiftCheckout');
 const config = require('./config');
@@ -36,17 +35,16 @@ app.use((req, res, next) => {
 });
 
 // Route mounting
-app.use('/', rootRoutes);                      // Root API documentation
-app.use('/health', healthRoutes);              // Health check endpoints
+app.use('/attendance/apiDocumentation', rootRoutes); // Root API documentation now under /attendance/apiDocumentation
+app.use('/attendance/health', healthRoutes);        // Health check endpoints now under /attendance/health
 app.use('/attendance', attendanceAllRoutes);    // Get all attendance logs
 app.use('/attendance/filter', attendanceFilterRoutes); // Get filtered attendance logs
 app.use('/attendance', attendanceWithNamesRoutes); // Attendance with employee names
-app.use('/device', deviceRoutes);              // Device information endpoints
-app.use('/webhook', webhookRoutes);            // Webhook integration endpoints
-app.use('/todayShift', shiftDataRoutes);        // Main shift data endpoint
-app.use('/todayShift/employees', shiftEmployeesRoutes); // Employee shift summary
-app.use('/todayShift/checkin', shiftCheckinRoutes);     // Shift check-in data
-app.use('/todayShift/checkout', shiftCheckoutRoutes);   // Shift check-out data
+app.use('/attendance', deviceRoutes); // Device information endpoints now under /attendance/device
+app.use('/attendance/webhook', webhookRoutes); // Webhook integration endpoints now under /attendance/webhook
+app.use('/attendance', shiftDataRoutes); // Main shift data endpoint now under /attendance/todayShift
+app.use('/attendance/todayShift', shiftCheckinRoutes);     // Shift check-in data now under /attendance/todayShift/checkin
+app.use('/attendance/todayShift', shiftCheckoutRoutes);   // Shift check-out data now under /attendance/todayShift/checkout
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -63,11 +61,12 @@ app.use((err, req, res, next) => {
 const server = app.listen(PORT, HOST, () => {
     console.log(`\n🚀 ZKTeco MB460 API Server started!`);
     console.log(`📍 Server: http://${HOST}:${PORT}`);
-    console.log(`🔗 Health Check: http://${HOST}:${PORT}/health`);
+    console.log(`🔗 Health Check: http://${HOST}:${PORT}/attendance/health`);
     console.log(`📊 Attendance API: http://${HOST}:${PORT}/attendance`);
-    console.log(`📱 Device Info: http://${HOST}:${PORT}/device/info`);
-    console.log(`🔗 Webhook API: http://${HOST}:${PORT}/webhook`);
-    console.log(`🕐 Today Shift API: http://${HOST}:${PORT}/todayShift`);
+    console.log(`📋 API Documentation: http://${HOST}:${PORT}/attendance/apiDocumentation`);
+    console.log(`📱 Device Info: http://${HOST}:${PORT}/attendance/device/info`);
+    console.log(`🔗 Webhook API: http://${HOST}:${PORT}/attendance/webhook`);
+    console.log(`🕐 Today Shift API: http://${HOST}:${PORT}/attendance/todayShift`);
     console.log(`\n⚙️ Configuration:`);
     console.log(`   MB460 Device: ${config.ENV.MB460_IP}:${config.ENV.MB460_PORT}`);
     console.log(`\n🎯 Ready for n8n integration!`);

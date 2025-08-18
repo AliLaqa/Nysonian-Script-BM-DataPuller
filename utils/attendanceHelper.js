@@ -34,11 +34,9 @@ async function getEnrichedAttendanceData() {
 async function getFilteredAttendanceData(startDate, endDate) {
     try {
         const baseUrl = `http://${config.ENV.API_HOST}:${config.ENV.API_PORT}`;
-        const params = {};
-        if (startDate) params.startDate = startDate;
-        if (endDate) params.endDate = endDate;
         
-        const response = await axios.get(`${baseUrl}/attendance/filter`, { params });
+        // Use new path parameter format
+        const response = await axios.get(`${baseUrl}/attendance/filter/${startDate}&${endDate}`);
         
         if (response.data.success) {
             return {

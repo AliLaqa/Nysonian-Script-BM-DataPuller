@@ -3,8 +3,8 @@ const express = require('express');
 const router = express.Router();
 const { processTodayShift } = require('./shiftUtils');
 
-// GET /todayShift/checkout - Get shift check-out data (today's first entries)
-router.get('/', async (req, res) => {
+// GET /attendance/todayShift/checkout - Get shift check-out data (today's first entries)
+router.get('/checkout', async (req, res) => {
     try {
         console.log('🔄 Fetching today\'s shift check-out data...');
 

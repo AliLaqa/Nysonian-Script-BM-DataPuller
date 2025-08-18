@@ -1,13 +1,25 @@
-// simple_routes/attendanceFilter.js - Get filtered attendance logs with employee names (GET /attendance/filter)
+// simple_routes/attendanceFilter.js - Get filtered attendance logs with employee names (GET /attendance/filter/:startDate&:endDate)
 const express = require('express');
 const router = express.Router();
 const { getEnrichedAttendanceData } = require('../utils/attendanceHelper');
 
 // Get attendance logs with date filtering and employee names
-router.get('/', async (req, res) => {
+// Route: /attendance/filter/:startDate&:endDate
+router.get('/:startDate&:endDate', async (req, res) => {
     try {
-        const { startDate, endDate } = req.query;
+        const { startDate, endDate } = req.params;
         console.log(`🔄 Fetching filtered attendance logs with employee names (${startDate} to ${endDate})...`);
+        
+        // Validate date format (YYYY-MM-DD)
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dateRegex.test(startDate) || !dateRegex.test(endDate)) {
+            return res.status(400).json({
+                success: false,
+                timestamp: new Date().toISOString(),
+                error: 'Invalid date format. Use YYYY-MM-DD format (e.g., 2025-08-14&2025-08-18)',
+                example: '/attendance/filter/2025-08-14&2025-08-18'
+            });
+        }
         
         // Get enriched attendance data from the attendance API
         const result = await getEnrichedAttendanceData();
@@ -16,17 +28,14 @@ router.get('/', async (req, res) => {
             throw new Error(result.error);
         }
         
-        // Apply date filtering if provided
-        let filteredData = result.data;
-        if (startDate || endDate) {
-            filteredData = result.data.filter(record => {
-                const recordDate = new Date(record.recordTime);
-                const start = startDate ? new Date(startDate) : new Date('1900-01-01');
-                const end = endDate ? new Date(endDate) : new Date('2100-12-31');
-                
-                return recordDate >= start && recordDate <= end;
-            });
-        }
+        // Apply date filtering
+        const filteredData = result.data.filter(record => {
+            const recordDate = new Date(record.recordTime);
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            
+            return recordDate >= start && recordDate <= end;
+        });
         
         res.json({
             success: true,
@@ -49,5 +58,7 @@ router.get('/', async (req, res) => {
         });
     }
 });
+
+
 
 module.exports = router;

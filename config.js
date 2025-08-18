@@ -27,9 +27,9 @@ const API = {
         ATTENDANCE_TODAY: '/attendance/today',
         ATTENDANCE_WITH_NAMES: '/attendanceWithNames',
         TODAY_SHIFT: '/todayShift',
-        WEBHOOK: '/webhook',
-        WEBHOOK_TODAY: '/webhook/today',
-        WEBHOOK_TODAY_SHIFT: '/webhook/todayShift',
+        WEBHOOK: '/attendance/webhook',
+        WEBHOOK_TODAY: '/attendance/webhook/today',
+        WEBHOOK_TODAY_SHIFT: '/attendance/webhook/todayShift',
         DEVICE: '/device'
     },
     

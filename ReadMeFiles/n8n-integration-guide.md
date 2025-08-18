@@ -47,7 +47,7 @@ GET http://YOUR_IP:3000/attendance
 
 #### Date Range Filter
 ```
-GET http://YOUR_IP:3000/attendance/filter?startDate=2025-08-01&endDate=2025-08-06
+GET http://YOUR_IP:3000/attendance/filter/2025-08-01&2025-08-06
 ```
 **Purpose:** Get attendance records within date range
 

@@ -25,7 +25,7 @@ api-server.js (426 lines)
 📁 utils/
 └── zkHelper.js (50 lines)             # Shared ZK device utilities
 
-api-server-modular.js (64 lines)       # Clean main server file
+api-server.js (97 lines)              # Main server file
 ```
 
 ## 🔄 Changes Made
@@ -53,14 +53,15 @@ api-server-modular.js (64 lines)       # Clean main server file
   - `safeDisconnect()` - Safe device disconnection
   - `getDeviceConfig()` - Get device configuration
 
-### 3. **New Main Server**
-- **`api-server-modular.js`** - Clean, modular server
+### 3. **Main Server**
+- **`api-server.js`** - Complete, modular server
   - Imports route modules
   - Mounts routes cleanly
+  - Includes webhook and shift features
   - Maintains same functionality
 
 ### 4. **Package.json Updates**
-- Added `start:modular` script for new server
+- Uses `start` script for main server
 - Maintained backward compatibility
 
 ## ✅ Benefits Achieved
@@ -101,7 +102,7 @@ npm start
 | `routes/device.js` | Device information | 85 | 2 |
 | `routes/health.js` | Health & docs | 40 | 2 |
 | `utils/zkHelper.js` | Shared utilities | 50 | - |
-| `api-server-modular.js` | Main server | 64 | - |
+| `api-server.js` | Main server | 97 | - |
 
 ## 🎯 Best Practices Implemented
 
@@ -121,7 +122,7 @@ npm start
 
 ## 📝 Notes
 
-- **Unified Structure** - Both `api-server.js` and `api-server-modular.js` use modular routes
+- **Unified Structure** - All routes use modular structure
 - **No Duplication** - All API endpoints are now in separate route files
 - **Same Functionality** - All endpoints work exactly the same
 - **Better Performance** - Modular structure allows for better optimization

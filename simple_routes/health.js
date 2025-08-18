@@ -4,7 +4,7 @@ const router = express.Router();
 const config = require('../config');
 
 // Health check endpoint
-router.get('/health', (req, res) => {
+router.get('/', (req, res) => {
     res.json({
         status: 'OK',
         timestamp: new Date().toISOString(),
@@ -12,7 +12,5 @@ router.get('/health', (req, res) => {
         version: '1.0.0'
     });
 });
-
-
 
 module.exports = router;

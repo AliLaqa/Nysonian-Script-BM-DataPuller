@@ -4,7 +4,7 @@ const router = express.Router();
 const { createZKInstance, safeDisconnect, getDeviceConfig } = require('../utils/zkHelper');
 
 // Get device info endpoint
-router.get('/info', async (req, res) => {
+router.get('/device/info', async (req, res) => {
     let zkInstance = null;
 
     try {
@@ -39,7 +39,7 @@ router.get('/info', async (req, res) => {
 });
 
 // Get device status endpoint
-router.get('/status', async (req, res) => {
+router.get('/device/status', async (req, res) => {
     let zkInstance = null;
 
     try {

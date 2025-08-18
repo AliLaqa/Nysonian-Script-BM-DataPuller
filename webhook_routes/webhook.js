@@ -45,7 +45,7 @@ async function fetchTodayShiftData() {
     try {
         const host = config.ENV.API_HOST === '0.0.0.0' ? '127.0.0.1' : config.ENV.API_HOST;
         const port = config.ENV.API_PORT;
-        const apiUrl = `http://${host}:${port}/todayShift`;
+        const apiUrl = `http://${host}:${port}/attendance/todayShift`;
         
         console.log(`🔄 Fetching data from today's shift API: ${apiUrl}`);
         
@@ -200,7 +200,7 @@ async function processWebhookRequest(date = null, webhookUrl = config.N8N.WEBHOO
     }
 }
 
-// POST /webhook/today - Fetch today's data and send to N8N webhook
+// POST /attendance/webhook/today - Fetch today's data and send to N8N webhook
 router.post('/today', async (req, res) => {
     try {
         const { webhookUrl } = req.body;
@@ -297,7 +297,7 @@ router.post('/today', async (req, res) => {
     }
 });
 
-// GET /webhook/test - Test endpoint to verify webhook functionality
+// GET /attendance/webhook/test - Test endpoint to verify webhook functionality
 router.get('/test', async (req, res) => {
     try {
         const testData = {
@@ -353,7 +353,7 @@ router.get('/test', async (req, res) => {
     }
 });
 
-// GET /webhook/today - Trigger webhook with today's data (for POST webhooks)
+// GET /attendance/webhook/today - Trigger webhook with today's data (for POST webhooks)
 router.get('/today', async (req, res) => {
     try {
         // This will fetch from /attendance/today, which now does NOT include allRecords in its data
@@ -391,7 +391,7 @@ router.get('/today', async (req, res) => {
     }
 });
 
-// GET /webhook/date/:date - Trigger webhook with data from a specific date
+// GET /attendance/webhook/date/:date - Trigger webhook with data from a specific date
 router.get('/date/:date', async (req, res) => {
     try {
         const { date } = req.params;
@@ -445,20 +445,20 @@ router.get('/date/:date', async (req, res) => {
     }
 });
 
-// GET /webhook/todayShift - Trigger webhook with today's shift data (spanning midnight)
+// GET /attendance/webhook/todayShift - Trigger webhook with today's shift data (spanning midnight)
 router.get('/todayShift', async (req, res) => {
     try {
         console.log('🚀 Starting today shift webhook process...');
         
         // Step 1: Fetch today's shift data
-        const shiftDataResult = await fetchTodayShiftData();
+        const shiftDataResult = await axios.get('http://127.0.0.1:3000/attendance/todayShift');
         
-        if (!shiftDataResult.success) {
+        if (!shiftDataResult.data.success) {
             return res.status(500).json({
                 success: false,
                 timestamp: new Date().toISOString(),
                 error: 'Failed to fetch today\'s shift data',
-                details: shiftDataResult.error
+                details: shiftDataResult.data.error || 'Unknown error'
             });
         }
         
