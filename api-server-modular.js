@@ -4,10 +4,12 @@ const express = require('express');
 const cors = require('cors');
 
 // Import route modules
-const healthRoutes = require('./routes/health');
-const attendanceRoutes = require('./routes/attendance');
-const attendanceWithNamesRoutes = require('./routes/attendanceWithNames');
-const deviceRoutes = require('./routes/device');
+const rootRoutes = require('./simple_routes/root');
+const healthRoutes = require('./simple_routes/health');
+const attendanceAllRoutes = require('./simple_routes/attendanceAll');
+const attendanceFilterRoutes = require('./simple_routes/attendanceFilter');
+const attendanceWithNamesRoutes = require('./simple_routes/attendanceWithNames');
+const deviceRoutes = require('./simple_routes/device');
 
 const app = express();
 const PORT = process.env.API_PORT || 3000;
@@ -24,8 +26,10 @@ app.use((req, res, next) => {
 });
 
 // Route mounting
-app.use('/', healthRoutes);                    // Health check and documentation
-app.use('/attendance', attendanceRoutes);      // Basic attendance endpoints
+app.use('/', rootRoutes);                      // Root API documentation
+app.use('/health', healthRoutes);              // Health check endpoints
+app.use('/attendance', attendanceAllRoutes);    // Get all attendance logs
+app.use('/attendance/filter', attendanceFilterRoutes); // Get filtered attendance logs
 app.use('/attendance', attendanceWithNamesRoutes); // Attendance with employee names
 app.use('/device', deviceRoutes);              // Device information endpoints
 

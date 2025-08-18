@@ -11,19 +11,32 @@ Nysonian-Script-BM-DataPuller/
 │   ├── attendanceWithNames.js   # Attendance with employee names
 │   ├── device.js                # Device information endpoints
 │   ├── health.js                # Health check and documentation
-│   └── webhook.js               # Webhook integration endpoints
+│   ├── webhook.js               # Webhook integration endpoints
+│   └── todayShift.js            # Today's shift endpoints (spanning midnight)
 ├── 📁 utils/                    # Shared utility functions
 │   └── zkHelper.js              # ZK device helper functions
+├── 📁 triggers/                 # Automated triggers and schedulers
+│   ├── webhookScheduler.js      # Webhook scheduling and auto-triggers
+│   └── README.md                # Triggers documentation
+├── 📁 tests/                    # Test files and utilities
+│   ├── test-connection.js       # Connection testing utility
+│   ├── test-webhook.js          # Webhook testing utility
+│   ├── test-n8n-webhook.js      # n8n webhook testing
+│   ├── test-date-webhook.js     # Date-specific webhook testing
+│   ├── test-today-shift.js      # Today shift endpoint testing
+│   ├── test-get-webhook.js      # GET webhook testing
+│   └── README.md                # Tests documentation
+├── 📁 ReadMeFiles/              # Additional documentation
+│   ├── n8n-integration-guide.md # n8n integration guide
+│   ├── REFACTORING-SUMMARY.md   # Refactoring documentation
+│   ├── script-start.md          # Setup and usage guide
+│   ├── TODAY-SHIFT-API-GUIDE.md # Today shift API documentation
+│   └── WEBHOOK-SETUP-GUIDE.md   # Webhook integration guide
 ├── api-server.js                # Main server (modular structure)
 ├── api-server-modular.js        # Alternative modular server
 ├── pull-logs.js                 # Core biometric device connection
-├── test-connection.js           # Connection testing utility
-├── test-webhook.js              # Webhook testing utility
-├── test-date-webhook.js         # Date-specific webhook testing
+├── config.js                    # Configuration settings
 ├── package.json                 # Dependencies and scripts
-├── script-start.md              # Setup and usage guide
-├── n8n-integration-guide.md     # n8n integration guide
-├── WEBHOOK-SETUP-GUIDE.md      # Webhook integration guide
 └── README.md                    # This file
 ```
 
@@ -55,7 +68,14 @@ npm start
 
 #### Test Connection
 ```bash
-npm test
+# Test device connection
+node tests/test-connection.js
+
+# Test webhook functionality
+node tests/test-webhook.js
+
+# Test today's shift functionality
+node tests/test-today-shift.js
 ```
 
 ## 📡 API Endpoints
@@ -69,10 +89,15 @@ npm test
 - `GET /attendance/filter?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD` - Filtered attendance
 - `GET /attendance/date/YYYY-MM-DD` - Specific date with employee names
 - `GET /attendance/today` - Today's attendance with employee names
+- `GET /todayShift` - Today's shift data (spanning midnight, 5 PM to 3 AM)
+- `GET /todayShift/employees` - Employee shift summary only
+- `GET /todayShift/checkin` - Shift check-in data (yesterday's last entries)
+- `GET /todayShift/checkout` - Shift check-out data (today's first entries)
 
 ### Webhook Integration
 - `GET /webhook/today` - Get today's data and send to N8N webhook
 - `GET /webhook/date/{date}` - Get specific date data and send to N8N webhook
+- `GET /webhook/todayShift` - Get today's shift data and send to N8N webhook
 - `GET /webhook/test` - Test endpoint with instructions
 
 ### Device Information

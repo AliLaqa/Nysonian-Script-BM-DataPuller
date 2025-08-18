@@ -2,14 +2,15 @@
 const express = require('express');
 const router = express.Router();
 const axios = require('axios');
+const config = require('../config');
 
 // Helper function to fetch attendance data from API
 async function fetchAttendanceData(date = null) {
     try {
         let apiUrl;
         // Use 127.0.0.1 instead of localhost to avoid potential DNS issues
-        const host = process.env.API_HOST === '0.0.0.0' ? '127.0.0.1' : (process.env.API_HOST || '127.0.0.1');
-        const port = process.env.API_PORT || 3000;
+        const host = config.ENV.API_HOST === '0.0.0.0' ? '127.0.0.1' : config.ENV.API_HOST;
+        const port = config.ENV.API_PORT;
         
         if (date) {
             apiUrl = `http://${host}:${port}/attendance/date/${date}`;
@@ -20,10 +21,8 @@ async function fetchAttendanceData(date = null) {
         }
         
         const response = await axios.get(apiUrl, {
-            timeout: 30000, // 30 second timeout
-            headers: {
-                'Content-Type': 'application/json'
-            }
+            timeout: config.API.TIMEOUT,
+            headers: config.API.HEADERS
         });
         
         return {
@@ -33,6 +32,35 @@ async function fetchAttendanceData(date = null) {
         };
     } catch (error) {
         console.error(`❌ Error fetching attendance data${date ? ` for ${date}` : ' for today'}:`, error.message);
+        return {
+            success: false,
+            error: error.message,
+            sourceUrl: apiUrl
+        };
+    }
+}
+
+// Helper function to fetch today's shift data (spanning midnight)
+async function fetchTodayShiftData() {
+    try {
+        const host = config.ENV.API_HOST === '0.0.0.0' ? '127.0.0.1' : config.ENV.API_HOST;
+        const port = config.ENV.API_PORT;
+        const apiUrl = `http://${host}:${port}/todayShift`;
+        
+        console.log(`🔄 Fetching data from today's shift API: ${apiUrl}`);
+        
+        const response = await axios.get(apiUrl, {
+            timeout: config.API.TIMEOUT,
+            headers: config.API.HEADERS
+        });
+        
+        return {
+            success: true,
+            data: response.data,
+            sourceUrl: apiUrl
+        };
+    } catch (error) {
+        console.error('❌ Error fetching today\'s shift data:', error.message);
         return {
             success: false,
             error: error.message,
@@ -53,16 +81,13 @@ async function sendToN8NWebhook(data, webhookUrl) {
         
         const payload = {
             timestamp: new Date().toISOString(),
-            source: 'ZKTeco-MB460-API',
+            source: config.N8N.PAYLOAD.SOURCE,
             data: data
         };
         
         const response = await axios.post(webhookUrl, payload, {
-            timeout: 30000, // 30 second timeout
-            headers: {
-                'Content-Type': 'application/json',
-                'User-Agent': 'ZKTeco-MB460-API/1.0'
-            }
+            timeout: config.API.TIMEOUT,
+            headers: config.API.HEADERS
         });
         
         return {
@@ -84,8 +109,8 @@ async function sendToN8NWebhook(data, webhookUrl) {
 
 // Helper function to process webhook request (DRY principle)
 async function processWebhookRequest(date = null, webhookUrl = 'https://nysonian.app.n8n.cloud/webhook/today-bm') {
-    const MAX_ATTEMPTS = 5;
-    const DELAY_MS = 30000; // 30 seconds
+    const MAX_ATTEMPTS = 3;
+    const DELAY_MS = 10000; // 10 seconds
     let attempt = 0;
     let dataResult;
     while (attempt < MAX_ATTEMPTS) {
@@ -304,6 +329,11 @@ router.get('/test', async (req, res) => {
                     method: 'GET',
                     url: '/webhook/date/2025-08-04'
                 },
+                todayShiftEndpoint: 'GET /webhook/todayShift to trigger webhook with today\'s shift data (spanning midnight)',
+                todayShiftExample: {
+                    method: 'GET',
+                    url: '/webhook/todayShift'
+                },
                 webhookType: 'POST (receives data in request body)',
                 dataStructure: {
                     timestamp: 'ISO timestamp',
@@ -407,6 +437,77 @@ router.get('/date/:date', async (req, res) => {
         
     } catch (error) {
         console.error('❌ Date Webhook API Error:', error);
+        res.status(500).json({
+            success: false,
+            timestamp: new Date().toISOString(),
+            error: error.message
+        });
+    }
+});
+
+// GET /webhook/todayShift - Trigger webhook with today's shift data (spanning midnight)
+router.get('/todayShift', async (req, res) => {
+    try {
+        console.log('🚀 Starting today shift webhook process...');
+        
+        // Step 1: Fetch today's shift data
+        const shiftDataResult = await fetchTodayShiftData();
+        
+        if (!shiftDataResult.success) {
+            return res.status(500).json({
+                success: false,
+                timestamp: new Date().toISOString(),
+                error: 'Failed to fetch today\'s shift data',
+                details: shiftDataResult.error
+            });
+        }
+        
+        // Step 2: Send data to N8N webhook
+        const webhookResult = await sendToN8NWebhook(shiftDataResult.data, config.N8N.WEBHOOKS.TODAY_SHIFT_BM);
+        
+        if (!webhookResult.success) {
+            return res.status(500).json({
+                success: false,
+                timestamp: new Date().toISOString(),
+                error: 'Failed to send shift data to N8N webhook',
+                details: webhookResult.error,
+                statusCode: webhookResult.statusCode,
+                shiftDataFetched: true,
+                shiftDataSummary: {
+                    totalEmployeesInShift: shiftDataResult.data.shiftData?.employeeShiftSummary?.length || 0,
+                    shiftPeriod: shiftDataResult.data.shiftData?.shiftPeriod?.description || 'Unknown'
+                }
+            });
+        }
+        
+        // Success response
+        res.json({
+            success: true,
+            timestamp: new Date().toISOString(),
+            message: 'Today\'s shift data successfully sent to N8N webhook',
+            process: {
+                step1: {
+                    status: 'completed',
+                    action: 'Fetched today\'s shift data (spanning midnight)',
+                    employeeCount: shiftDataResult.data.shiftData?.employeeShiftSummary?.length || 0,
+                    shiftPeriod: shiftDataResult.data.shiftData?.shiftPeriod?.description || 'Unknown'
+                },
+                step2: {
+                    status: 'completed',
+                    action: 'Sent shift data to N8N webhook',
+                    webhookUrl: webhookResult.webhookUrl,
+                    statusCode: webhookResult.statusCode
+                }
+            },
+            summary: {
+                totalEmployeesInShift: shiftDataResult.data.shiftData?.employeeShiftSummary?.length || 0,
+                shiftPeriod: shiftDataResult.data.shiftData?.shiftPeriod?.description || 'Unknown',
+                webhookResponse: webhookResult.webhookResponse
+            }
+        });
+        
+    } catch (error) {
+        console.error('❌ Today Shift Webhook API Error:', error);
         res.status(500).json({
             success: false,
             timestamp: new Date().toISOString(),

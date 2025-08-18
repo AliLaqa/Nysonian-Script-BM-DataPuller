@@ -1,12 +1,13 @@
 // pull-logs.js - Basic script to pull attendance logs from ZKTeco MB460
 require('dotenv').config();
 const ZKLib = require('node-zklib');
+const config = require('./config');
 
 async function pullAttendanceLogs() {
-    const ip = process.env.MB460_IP || '192.168.1.201';
-    const port = parseInt(process.env.MB460_PORT) || 4370;
-    const timeout = parseInt(process.env.MB460_TIMEOUT) || 10000;
-    const inport = parseInt(process.env.MB460_INPORT) || 4000;
+    const ip = config.ENV.MB460_IP;
+    const port = config.ENV.MB460_PORT;
+    const timeout = config.ENV.MB460_TIMEOUT;
+    const inport = config.ENV.MB460_INPORT;
 
     console.log(`Connecting to MB460 at ${ip}:${port}...`);
 

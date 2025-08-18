@@ -5,15 +5,25 @@ const cors = require('cors');
 const axios = require('axios');
 
 // Import route modules
-const healthRoutes = require('./routes/health');
-const attendanceRoutes = require('./routes/attendance');
-const attendanceWithNamesRoutes = require('./routes/attendanceWithNames');
-const deviceRoutes = require('./routes/device');
-const webhookRoutes = require('./routes/webhook');
+const rootRoutes = require('./simple_routes/root');
+const healthRoutes = require('./simple_routes/health');
+const attendanceAllRoutes = require('./simple_routes/attendanceAll');
+const attendanceFilterRoutes = require('./simple_routes/attendanceFilter');
+const attendanceWithNamesRoutes = require('./simple_routes/attendanceWithNames');
+const deviceRoutes = require('./simple_routes/device');
+const webhookRoutes = require('./webhook_routes/webhook');
+const shiftDataRoutes = require('./shift_routes/shiftData');
+const shiftEmployeesRoutes = require('./shift_routes/shiftEmployees');
+const shiftCheckinRoutes = require('./shift_routes/shiftCheckin');
+const shiftCheckoutRoutes = require('./shift_routes/shiftCheckout');
+const config = require('./config');
+
+// Import triggers
+const WebhookScheduler = require('./triggers/webhookScheduler');
 
 const app = express();
-const PORT = process.env.API_PORT || 3000;
-const HOST = process.env.API_HOST || 'localhost';
+const PORT = config.ENV.API_PORT;
+const HOST = config.ENV.API_HOST;
 
 // Middleware
 app.use(cors());
@@ -26,11 +36,17 @@ app.use((req, res, next) => {
 });
 
 // Route mounting
-app.use('/', healthRoutes);                    // Health check and documentation
-app.use('/attendance', attendanceRoutes);      // Basic attendance endpoints
+app.use('/', rootRoutes);                      // Root API documentation
+app.use('/health', healthRoutes);              // Health check endpoints
+app.use('/attendance', attendanceAllRoutes);    // Get all attendance logs
+app.use('/attendance/filter', attendanceFilterRoutes); // Get filtered attendance logs
 app.use('/attendance', attendanceWithNamesRoutes); // Attendance with employee names
 app.use('/device', deviceRoutes);              // Device information endpoints
 app.use('/webhook', webhookRoutes);            // Webhook integration endpoints
+app.use('/todayShift', shiftDataRoutes);        // Main shift data endpoint
+app.use('/todayShift/employees', shiftEmployeesRoutes); // Employee shift summary
+app.use('/todayShift/checkin', shiftCheckinRoutes);     // Shift check-in data
+app.use('/todayShift/checkout', shiftCheckoutRoutes);   // Shift check-out data
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -51,29 +67,28 @@ const server = app.listen(PORT, HOST, () => {
     console.log(`📊 Attendance API: http://${HOST}:${PORT}/attendance`);
     console.log(`📱 Device Info: http://${HOST}:${PORT}/device/info`);
     console.log(`🔗 Webhook API: http://${HOST}:${PORT}/webhook`);
+    console.log(`🕐 Today Shift API: http://${HOST}:${PORT}/todayShift`);
     console.log(`\n⚙️ Configuration:`);
-    console.log(`   MB460 Device: ${process.env.MB460_IP}:${process.env.MB460_PORT}`);
+    console.log(`   MB460 Device: ${config.ENV.MB460_IP}:${config.ENV.MB460_PORT}`);
     console.log(`\n🎯 Ready for n8n integration!`);
 
-    // Call /webhook/today automatically on server start
-    const webhookUrl = `http://${HOST}:${PORT}/webhook/today`;
-    console.log(`\n🔔 Triggering initial webhook: GET ${webhookUrl}`);
-    axios.get(webhookUrl)
-        .then(response => {
-            console.log('✅ Initial /webhook/today call succeeded:', response.data.message || response.data);
-        })
-        .catch(error => {
-            if (error.response) {
-                console.error('❌ Initial /webhook/today call failed:', error.response.data);
-            } else {
-                console.error('❌ Initial /webhook/today call error:', error.message);
-            }
-        });
+    // Initialize webhook scheduler
+    const webhookScheduler = new WebhookScheduler();
+    webhookScheduler.init();
+    
+    // Store globally for graceful shutdown
+    global.webhookScheduler = webhookScheduler;
 });
 
 // Graceful shutdown
 process.on('SIGINT', () => {
     console.log('\n🛑 Shutting down server...');
+    
+    // Stop webhook scheduler if it exists
+    if (global.webhookScheduler && global.webhookScheduler.isRunning()) {
+        global.webhookScheduler.stopScheduledWebhooks();
+    }
+    
     server.close(() => {
         console.log('✅ Server stopped gracefully');
         process.exit(0);

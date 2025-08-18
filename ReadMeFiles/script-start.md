@@ -121,7 +121,7 @@ $env:MB460_IP="YOUR_MB460_IP"; $env:API_HOST="0.0.0.0"; & "C:\Program Files\node
 
 **Direct Node.js (PowerShell):**
 ```powershell
-$env:MB460_IP="YOUR_MB460_IP"; & "C:\Program Files\nodejs\node.exe" test-connection.js
+$env:MB460_IP="YOUR_MB460_IP"; & "C:\Program Files\nodejs\node.exe" tests/test-connection.js
 ```
 
 #### Pull Logs Once (Manual)
@@ -351,9 +351,9 @@ set MB460_IP=192.168.1.113 && set API_HOST=0.0.0.0 && npm start
 biometricmachinescript/
 ├── api-server.js              # Main API server with Slack integration
 ├── slack-integration.js       # Slack integration module
-├── test-slack.js              # Slack integration testing script
+├── tests/test-slack.js        # Slack integration testing script
 ├── pull-logs.js               # Core MB460 connection logic
-├── test-connection.js         # Connection testing script
+├── tests/test-connection.js   # Connection testing script
 ├── package.json               # Dependencies and scripts
 ├── .env                       # Configuration file
 ├── script-start.md           # This setup guide

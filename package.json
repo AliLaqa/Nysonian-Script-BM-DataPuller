@@ -4,13 +4,14 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "node test-connection.js",
+    "test": "node tests/test-connection.js",
     "start": "node api-server.js",
     "logs": "node pull-logs.js",
-    "test-webhook": "node test-webhook.js",
-    "test-n8n": "node test-n8n-webhook.js",
-    "test-get": "node test-get-webhook.js",
-    "test-date": "node test-date-webhook.js"
+    "test-webhook": "node tests/test-webhook.js",
+    "test-n8n": "node tests/test-n8n-webhook.js",
+    "test-get": "node tests/test-get-webhook.js",
+    "test-date": "node tests/test-date-webhook.js",
+    "test-today-shift": "node tests/test-today-shift.js"
   },
   "keywords": [],
   "author": "",

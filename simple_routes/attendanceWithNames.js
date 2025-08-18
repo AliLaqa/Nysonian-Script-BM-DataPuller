@@ -1,28 +1,21 @@
 // routes/attendanceWithNames.js - Attendance endpoints with employee names
 const express = require('express');
 const router = express.Router();
-const { createZKInstance, safeDisconnect } = require('../utils/zkHelper');
+const { getEnrichedAttendanceData } = require('../utils/attendanceHelper');
 
 // Helper function to process attendance data with employee names
-async function processAttendanceWithNames(zkInstance, dateFilter = null) {
-    // Get all users first to map IDs to names
-    const users = await zkInstance.getUsers();
-    const userMap = {};
-    users.data.forEach(user => {
-        userMap[user.userId] = {
-            name: user.name,
-            role: user.role,
-            uid: user.uid
-        };
-    });
-
-    // Get all attendance logs
-    const logs = await zkInstance.getAttendances();
+async function processAttendanceWithNames(dateFilter = null) {
+    // Get enriched attendance data from the attendance API
+    const result = await getEnrichedAttendanceData();
+    
+    if (!result.success) {
+        throw new Error(result.error);
+    }
     
     // Apply date filter if provided
-    let filteredLogs = logs.data;
+    let filteredLogs = result.data;
     if (dateFilter) {
-        filteredLogs = logs.data.filter(record => {
+        filteredLogs = result.data.filter(record => {
             const recordDate = new Date(record.recordTime);
             // Use local date formatting to ensure consistent timezone handling
             const recordDateStr = recordDate.toLocaleDateString('en-CA'); // YYYY-MM-DD format
@@ -30,22 +23,9 @@ async function processAttendanceWithNames(zkInstance, dateFilter = null) {
         });
     }
 
-    // Enrich with employee names
-    const enrichedLogs = filteredLogs.map(record => ({
-        userSn: record.userSn,
-        deviceUserId: record.deviceUserId,
-        employeeName: userMap[record.deviceUserId]?.name || 'Unknown Employee',
-        employeeRole: userMap[record.deviceUserId]?.role || 0,
-        recordTime: record.recordTime,
-        recordDate: new Date(record.recordTime).toLocaleDateString('en-GB'),
-        recordTimeFormatted: new Date(record.recordTime).toLocaleString('en-GB'),
-        timeOnly: new Date(record.recordTime).toLocaleTimeString('en-GB'),
-        ip: record.ip
-    }));
-
     // Group by employee for summary
     const employeeSummary = {};
-    enrichedLogs.forEach(record => {
+    filteredLogs.forEach(record => {
         const key = record.deviceUserId;
         if (!employeeSummary[key]) {
             employeeSummary[key] = {
@@ -72,7 +52,7 @@ async function processAttendanceWithNames(zkInstance, dateFilter = null) {
     });
 
     return {
-        enrichedLogs,
+        enrichedLogs: filteredLogs,
         employeeSummary: Object.values(employeeSummary)
     };
 }
@@ -80,14 +60,11 @@ async function processAttendanceWithNames(zkInstance, dateFilter = null) {
 // Get attendance by date with employee names
 router.get('/date/:date', async (req, res) => {
     const requestedDate = req.params.date; // Expected format: YYYY-MM-DD
-    let zkInstance = null;
 
     try {
         console.log(`🔄 Fetching attendance for ${requestedDate} with employee names...`);
-        zkInstance = createZKInstance();
-        await zkInstance.createSocket();
 
-        const { enrichedLogs, employeeSummary } = await processAttendanceWithNames(zkInstance, requestedDate);
+        const { enrichedLogs, employeeSummary } = await processAttendanceWithNames(requestedDate);
 
         res.json({
             success: true,
@@ -114,25 +91,19 @@ router.get('/date/:date', async (req, res) => {
             totalRecordsForDate: 0,
             data: []
         });
-    } finally {
-        await safeDisconnect(zkInstance);
     }
 });
 
 // Get today's attendance with employee names
 router.get('/today', async (req, res) => {
-    let zkInstance = null;
-
     try {
         console.log('🔄 Fetching today\'s attendance with employee names...');
-        zkInstance = createZKInstance();
-        await zkInstance.createSocket();
 
         // Get today's actual date dynamically
         const today = new Date();
         const todayStr = today.toLocaleDateString('en-CA'); // YYYY-MM-DD format
         
-        const { enrichedLogs, employeeSummary } = await processAttendanceWithNames(zkInstance, todayStr);
+        const { enrichedLogs, employeeSummary } = await processAttendanceWithNames(todayStr);
 
         res.json({
             success: true,
@@ -159,8 +130,6 @@ router.get('/today', async (req, res) => {
             totalRecordsForDate: 0,
             data: []
         });
-    } finally {
-        await safeDisconnect(zkInstance);
     }
 });
 

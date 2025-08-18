@@ -1,15 +1,16 @@
 // utils/zkHelper.js - Shared ZK device helper functions
 const ZKLib = require('node-zklib');
+const config = require('../config');
 
 /**
  * Create a new ZK instance with environment configuration
  * @returns {ZKLib} ZK instance
  */
 function createZKInstance() {
-    const ip = process.env.MB460_IP || '192.168.1.201';
-    const port = parseInt(process.env.MB460_PORT) || 4370;
-    const timeout = parseInt(process.env.MB460_TIMEOUT) || 10000;
-    const inport = parseInt(process.env.MB460_INPORT) || 4000;
+    const ip = config.ENV.MB460_IP;
+    const port = config.ENV.MB460_PORT;
+    const timeout = config.ENV.MB460_TIMEOUT;
+    const inport = config.ENV.MB460_INPORT;
     
     return new ZKLib(ip, port, timeout, inport);
 }
@@ -35,10 +36,10 @@ async function safeDisconnect(zkInstance) {
  */
 function getDeviceConfig() {
     return {
-        ip: process.env.MB460_IP || '192.168.1.201',
-        port: parseInt(process.env.MB460_PORT) || 4370,
-        timeout: parseInt(process.env.MB460_TIMEOUT) || 10000,
-        inport: parseInt(process.env.MB460_INPORT) || 4000
+        ip: config.ENV.MB460_IP,
+        port: config.ENV.MB460_PORT,
+        timeout: config.ENV.MB460_TIMEOUT,
+        inport: config.ENV.MB460_INPORT
     };
 }
 
