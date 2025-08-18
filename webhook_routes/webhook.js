@@ -108,7 +108,7 @@ async function sendToN8NWebhook(data, webhookUrl) {
 }
 
 // Helper function to process webhook request (DRY principle)
-async function processWebhookRequest(date = null, webhookUrl = 'https://nysonian.app.n8n.cloud/webhook/today-bm') {
+async function processWebhookRequest(date = null, webhookUrl = config.N8N.WEBHOOKS.TODAY_BM) {
     const MAX_ATTEMPTS = 3;
     const DELAY_MS = 10000; // 10 seconds
     let attempt = 0;
