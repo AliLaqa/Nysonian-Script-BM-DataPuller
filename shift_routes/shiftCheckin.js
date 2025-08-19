@@ -2,31 +2,85 @@
 const express = require('express');
 const router = express.Router();
 const { processTodayShift } = require('./shiftUtils');
+const { getEnrichedAttendanceData } = require('../utils/attendanceHelper');
 
-// GET /attendance/todayShift/checkin - Get shift check-in data (yesterday's last entries)
+// Helper to get check-in record based on new criteria
+function getCheckInRecord(records, now) {
+    const today = new Date(now);
+    today.setHours(0, 0, 0, 0);
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const hour = now.getHours();
+    let checkIn = null;
+    if (hour < 12) {
+        // 12am-12pm: use yesterday's entry after 12pm and before 12am
+        const yesterdaysRecords = records.filter(r => {
+            const [d, m, y] = r.recordDate.split('/');
+            const recDate = new Date(y, m - 1, d);
+            return recDate.getFullYear() === yesterday.getFullYear() &&
+                   recDate.getMonth() === yesterday.getMonth() &&
+                   recDate.getDate() === yesterday.getDate();
+        });
+        const filtered = yesterdaysRecords.filter(r => {
+            const recTime = new Date(r.recordTime);
+            const h = recTime.getHours();
+            return h >= 12 && h < 24;
+        });
+        if (filtered.length > 0) {
+            checkIn = filtered[filtered.length - 1];
+        }
+    } else {
+        // 12pm-12am: use today's entry after 12pm and before 12am
+        const todaysRecords = records.filter(r => {
+            const [d, m, y] = r.recordDate.split('/');
+            const recDate = new Date(y, m - 1, d);
+            return recDate.getFullYear() === today.getFullYear() &&
+                   recDate.getMonth() === today.getMonth() &&
+                   recDate.getDate() === today.getDate();
+        });
+        const filtered = todaysRecords.filter(r => {
+            const recTime = new Date(r.recordTime);
+            const h = recTime.getHours();
+            return h >= 12 && h < 24;
+        });
+        if (filtered.length > 0) {
+            checkIn = filtered[filtered.length - 1];
+        }
+    }
+    return checkIn;
+}
+
+// GET /attendance/todayShift/checkin - Get shift check-in data (buffered logic)
 router.get('/checkin', async (req, res) => {
     try {
-        console.log('🔄 Fetching today\'s shift check-in data...');
-
-        const shiftData = await processTodayShift();
-        
-        // Extract only check-in data
-        const checkInData = shiftData.employeeShiftSummary.map(employee => ({
-            deviceUserId: employee.deviceUserId,
-            employeeName: employee.employeeName,
-            employeeRole: employee.employeeRole,
-            checkIn: employee.shiftCheckIn
-        }));
-
+        console.log('🔄 Fetching today\'s shift check-in data (buffered)...');
+        const result = await getEnrichedAttendanceData();
+        if (!result.success) throw new Error(result.error);
+        const now = new Date();
+        const employeeRecords = {};
+        result.data.forEach(record => {
+            const key = record.deviceUserId;
+            if (!employeeRecords[key]) employeeRecords[key] = [];
+            employeeRecords[key].push(record);
+        });
+        const checkInData = Object.entries(employeeRecords).map(([deviceUserId, records]) => {
+            records.sort((a, b) => new Date(a.recordTime) - new Date(b.recordTime));
+            const checkIn = getCheckInRecord(records, now);
+            return {
+                deviceUserId,
+                employeeName: records[0].employeeName,
+                employeeRole: records[0].employeeRole,
+                checkIn
+            };
+        });
         res.json({
             success: true,
             timestamp: new Date().toISOString(),
-            message: 'Today\'s shift check-in data retrieved successfully',
-            shiftPeriod: shiftData.shiftPeriod,
+            message: 'Today\'s shift check-in data (buffered) retrieved successfully',
             totalEmployeesInShift: checkInData.length,
             data: checkInData
         });
-
     } catch (error) {
         console.error('❌ Today Shift Check-in API Error:', error);
         res.status(500).json({
