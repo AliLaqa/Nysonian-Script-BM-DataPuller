@@ -11,8 +11,10 @@ function getCheckOutRecord(records, now) {
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     const hour = now.getHours();
+    const minute = now.getMinutes();
     let checkOut = null;
-    if (hour < 12) {
+    // Treat exactly 12:00am as before 12pm
+    if (hour < 12 || (hour === 0 && minute === 0)) {
         // 12am-12pm: use today's entry after 12am and before 12pm
         const todaysRecords = records.filter(r => {
             const [d, m, y] = r.recordDate.split('/');
@@ -66,11 +68,27 @@ router.get('/checkout', async (req, res) => {
         const checkOutData = Object.entries(employeeRecords).map(([deviceUserId, records]) => {
             records.sort((a, b) => new Date(a.recordTime) - new Date(b.recordTime));
             const checkOut = getCheckOutRecord(records, now);
+            let checkOutObj;
+            if (checkOut) {
+                checkOutObj = checkOut;
+            } else {
+                checkOutObj = {
+                    userSn: null,
+                    deviceUserId,
+                    employeeName: records[0].employeeName,
+                    employeeRole: records[0].employeeRole,
+                    recordTime: null,
+                    recordDate: null,
+                    recordTimeFormatted: null,
+                    timeOnly: null,
+                    ip: (records[0] && records[0].ip) ? records[0].ip : null
+                };
+            }
             return {
                 deviceUserId,
                 employeeName: records[0].employeeName,
                 employeeRole: records[0].employeeRole,
-                checkOut
+                checkOut: checkOutObj
             };
         });
         res.json({
@@ -78,7 +96,7 @@ router.get('/checkout', async (req, res) => {
             timestamp: new Date().toISOString(),
             message: 'Today\'s shift check-out data (buffered) retrieved successfully',
             totalEmployeesInShift: checkOutData.length,
-            data: checkOutData
+            data: checkOutData //final checkout data that is also being passed to todayShift
         });
     } catch (error) {
         console.error('❌ Today Shift Check-out API Error:', error);

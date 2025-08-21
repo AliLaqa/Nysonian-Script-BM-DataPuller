@@ -247,7 +247,8 @@ router.post('/today', async (req, res) => {
         const webhookResult = await sendToN8NWebhook(todayDataResult.data, webhookUrl);
         
         if (!webhookResult.success) {
-            return res.status(500).json({
+            const statusCode = Number.isInteger(webhookResult.statusCode) ? webhookResult.statusCode : 500;
+            return res.status(statusCode).json({
                 success: false,
                 timestamp: new Date().toISOString(),
                 error: 'Failed to send data to N8N webhook',
@@ -360,7 +361,10 @@ router.get('/today', async (req, res) => {
         const result = await processWebhookRequest();
         
         if (!result.success) {
-            return res.status(result.statusCode || 500).json({
+            // return res.status(result.statusCode || 500).json({
+            //Comment the below two lines and uncomment the above line if you want to use the old code
+            const statusCode = Number.isInteger(result.statusCode) ? result.statusCode : 500;
+            return res.status(statusCode).json({
                 success: false,
                 timestamp: new Date().toISOString(),
                 error: result.error,
@@ -412,7 +416,8 @@ router.get('/date/:date', async (req, res) => {
         const result = await processWebhookRequest(date);
         
         if (!result.success) {
-            return res.status(result.statusCode || 500).json({
+            const statusCode = Number.isInteger(result.statusCode) ? result.statusCode : 500;
+            return res.status(statusCode).json({
                 success: false,
                 timestamp: new Date().toISOString(),
                 error: result.error,
@@ -461,12 +466,37 @@ router.get('/todayShift', async (req, res) => {
                 details: shiftDataResult.data.error || 'Unknown error'
             });
         }
-        
+
+        // Check if all checkIn and checkOut are empty/null for all employees
+        const allEmpty = Array.isArray(shiftDataResult.data.data)
+            ? shiftDataResult.data.data.every(emp => {
+                const ci = emp.checkIn;
+                const co = emp.checkOut;
+                // If checkIn and checkOut are objects, check if all their values (except deviceUserId, employeeName, employeeRole, ip) are null
+                const isCheckInEmpty = ci && typeof ci === 'object' && Object.keys(ci).length > 0
+                    ? Object.entries(ci).every(([k, v]) => ['deviceUserId','employeeName','employeeRole','ip'].includes(k) || v === null)
+                    : !ci;
+                const isCheckOutEmpty = co && typeof co === 'object' && Object.keys(co).length > 0
+                    ? Object.entries(co).every(([k, v]) => ['deviceUserId','employeeName','employeeRole','ip'].includes(k) || v === null)
+                    : !co;
+                return isCheckInEmpty && isCheckOutEmpty;
+            })
+            : true;
+        if (allEmpty) {
+            return res.status(200).json({
+                success: false,
+                timestamp: new Date().toISOString(),
+                error: 'All shift data is empty. No data will be pushed to the webhook.',
+                details: 'Biometric machine returned only empty/null records for all employees.'
+            });
+        }
+
         // Step 2: Send data to N8N webhook
         const webhookResult = await sendToN8NWebhook(shiftDataResult.data, config.N8N.WEBHOOKS.TODAY_SHIFT_BM);
         
         if (!webhookResult.success) {
-            return res.status(500).json({
+            const statusCode = Number.isInteger(webhookResult.statusCode) ? webhookResult.statusCode : 500;
+            return res.status(statusCode).json({
                 success: false,
                 timestamp: new Date().toISOString(),
                 error: 'Failed to send shift data to N8N webhook',
