@@ -21,6 +21,22 @@ function createZKInstance() {
 }
 
 /**
+ * Create a new ZK instance with explicit parameters (for testing alternate endpoints)
+ * @param {string} ip
+ * @param {number} port
+ * @param {number} timeout
+ * @param {number} inport
+ * @returns {ZKLib}
+ */
+function createZKInstanceWith(ip, port, timeout, inport) {
+    try {
+        return new ZKLib(ip, port, timeout || config.ENV.MB460_TIMEOUT, inport || config.ENV.MB460_INPORT);
+    } catch (error) {
+        throw errorTracker.setError(ERROR_STEPS.ZK_HELPER, `Failed to create ZK instance (custom): ${error.message}`, { ip, port, timeout, inport });
+    }
+}
+
+/**
  * Safely disconnect from ZK device
  * @param {ZKLib} zkInstance - ZK instance to disconnect
  */
@@ -98,6 +114,7 @@ async function getAttendanceDataWithRetry(zkInstance, maxRetries = 3) {
 
 module.exports = {
     createZKInstance,
+    createZKInstanceWith,
     safeDisconnect,
     getDeviceConfig,
     getAttendanceDataWithRetry

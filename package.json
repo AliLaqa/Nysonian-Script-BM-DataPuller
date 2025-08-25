@@ -11,7 +11,8 @@
     "test-n8n": "node tests/test-n8n-webhook.js",
     "test-get": "node tests/test-get-webhook.js",
     "test-date": "node tests/test-date-webhook.js",
-    "test-today-shift": "node tests/test-today-shift.js"
+    "test-today-shift": "node tests/test-today-shift.js",
+    "test-wlan-device": "node tests/test-wlan-device.js"
   },
   "keywords": [],
   "author": "",

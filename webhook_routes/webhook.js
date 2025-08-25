@@ -462,10 +462,13 @@ router.get('/todayShift', async (req, res) => {
         // Step 1: Fetch today's shift data
         let shiftDataResult;
         try {
-            shiftDataResult = await axios.get('http://127.0.0.1:3000/attendance/todayShift');
+            const host = config.ENV.API_HOST === '0.0.0.0' ? '127.0.0.1' : config.ENV.API_HOST;
+            const port = config.ENV.API_PORT;
+            const url = `http://${host}:${port}/attendance/todayShift`;
+            shiftDataResult = await axios.get(url);
         } catch (error) {
             throw errorTracker.setError(ERROR_STEPS.WEBHOOK_SHIFT_FETCH, `Failed to fetch shift data: ${error.message}`, { 
-                url: 'http://127.0.0.1:3000/attendance/todayShift',
+                url: `http://${config.ENV.API_HOST === '0.0.0.0' ? '127.0.0.1' : config.ENV.API_HOST}:${config.ENV.API_PORT}/attendance/todayShift`,
                 status: error.response?.status,
                 originalError: error.message
             });
@@ -478,27 +481,14 @@ router.get('/todayShift', async (req, res) => {
             });
         }
 
-        // Check if all checkIn and checkOut are empty/null for all employees
-        const allEmpty = Array.isArray(shiftDataResult.data.data)
-            ? shiftDataResult.data.data.every(emp => {
-                const ci = emp.checkIn;
-                const co = emp.checkOut;
-                // If checkIn and checkOut are objects, check if all their values (except deviceUserId, employeeName, employeeRole, ip) are null
-                const isCheckInEmpty = ci && typeof ci === 'object' && Object.keys(ci).length > 0
-                    ? Object.entries(ci).every(([k, v]) => ['deviceUserId','employeeName','employeeRole','ip'].includes(k) || v === null)
-                    : !ci;
-                const isCheckOutEmpty = co && typeof co === 'object' && Object.keys(co).length > 0
-                    ? Object.entries(co).every(([k, v]) => ['deviceUserId','employeeName','employeeRole','ip'].includes(k) || v === null)
-                    : !co;
-                return isCheckInEmpty && isCheckOutEmpty;
-            })
-            : true;
-        if (allEmpty) {
+        // Allow forwarding even if many entries contain null checkIn/checkout; only block if array is truly empty
+        const list = Array.isArray(shiftDataResult.data?.data) ? shiftDataResult.data.data : [];
+        if (list.length === 0) {
             return res.status(200).json({
                 success: false,
                 timestamp: new Date().toISOString(),
-                error: 'All shift data is empty. No data will be pushed to the webhook.',
-                details: 'Biometric machine returned only empty/null records for all employees.'
+                error: 'No shift records available to send',
+                details: 'todayShift returned an empty list.'
             });
         }
 
@@ -531,8 +521,8 @@ router.get('/todayShift', async (req, res) => {
                     step1: {
                         status: 'completed',
                         action: 'Fetched today\'s shift data (spanning midnight)',
-                        employeeCount: shiftDataResult.data.shiftData?.employeeShiftSummary?.length || 0,
-                        shiftPeriod: shiftDataResult.data.shiftData?.shiftPeriod?.description || 'Unknown'
+                        employeeCount: (shiftDataResult.data.summary?.totalEmployeesInShift) || list.length,
+                        shiftPeriod: 'CheckIn is yesterday PM; CheckOut is today AM'
                     },
                     step2: {
                         status: 'completed',
@@ -542,8 +532,8 @@ router.get('/todayShift', async (req, res) => {
                     }
                 },
                 summary: {
-                    totalEmployeesInShift: shiftDataResult.data.shiftData?.employeeShiftSummary?.length || 0,
-                    shiftPeriod: shiftDataResult.data.shiftData?.shiftPeriod?.description || 'Unknown',
+                    totalEmployeesInShift: (shiftDataResult.data.summary?.totalEmployeesInShift) || list.length,
+                    shiftPeriod: 'CheckIn is yesterday PM; CheckOut is today AM',
                     webhookResponse: webhookResult.webhookResponse
                 }
             });
