@@ -132,8 +132,8 @@ Map the API response to Google Sheets columns:
       "employeeName": "Zeeshan Shad",
       "deviceUserId": "78",
       "timeOnly": "22:41:58",
-      "recordDate": "28/05/2025",
-      "recordTimeFormatted": "28/05/2025, 22:41:58"
+      "recordDate": "05/28/2025",
+      "recordTimeFormatted": "05/28/2025, 22:41:58"
     }
   ]
 }

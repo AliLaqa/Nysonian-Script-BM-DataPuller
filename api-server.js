@@ -45,6 +45,7 @@ app.use('/attendance/webhook', webhookRoutes); // Webhook integration endpoints 
 app.use('/attendance', shiftDataRoutes); // Main shift data endpoint now under /attendance/todayShift
 app.use('/attendance/todayShift', shiftCheckinRoutes);     // Shift check-in data now under /attendance/todayShift/checkin
 app.use('/attendance/todayShift', shiftCheckoutRoutes);   // Shift check-out data now under /attendance/todayShift/checkout
+// app.use('/attendance/logs', logEditorRoutes); // Removed logs endpoints
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -67,16 +68,17 @@ const server = app.listen(PORT, HOST, () => {
     console.log(`📱 Device Info: http://${HOST}:${PORT}/attendance/device/info`);
     console.log(`🔗 Webhook API: http://${HOST}:${PORT}/attendance/webhook`);
     console.log(`🕐 Today Shift API: http://${HOST}:${PORT}/attendance/todayShift`);
+    // console.log(`📋 Log Viewer API: http://${HOST}:${PORT}/attendance/logs/help`);
     console.log(`\n⚙️ Configuration:`);
     console.log(`   MB460 Device: ${config.ENV.MB460_IP}:${config.ENV.MB460_PORT}`);
     console.log(`\n🎯 Ready for n8n integration!`);
 
     // Initialize webhook scheduler
-    const webhookScheduler = new WebhookScheduler();
-    webhookScheduler.init();
+    // const webhookScheduler = new WebhookScheduler();
+    // webhookScheduler.init();
     
     // Store globally for graceful shutdown
-    global.webhookScheduler = webhookScheduler;
+    // global.webhookScheduler = webhookScheduler;
 });
 
 // Graceful shutdown
@@ -84,9 +86,9 @@ process.on('SIGINT', () => {
     console.log('\n🛑 Shutting down server...');
     
     // Stop webhook scheduler if it exists
-    if (global.webhookScheduler && global.webhookScheduler.isRunning()) {
-        global.webhookScheduler.stopScheduledWebhooks();
-    }
+    // if (global.webhookScheduler && global.webhookScheduler.isRunning()) {
+    //     global.webhookScheduler.stopScheduledWebhooks();
+    // }
     
     server.close(() => {
         console.log('✅ Server stopped gracefully');

@@ -1,12 +1,24 @@
 // utils/attendanceHelper.js - Shared utility for getting enriched attendance data
 const axios = require('axios');
 const config = require('../config');
+const { errorTracker, ERROR_STEPS } = require('./errorTracker');
 
 // Get enriched attendance data using the attendance API
 async function getEnrichedAttendanceData() {
     try {
         const baseUrl = `http://${config.ENV.API_HOST}:${config.ENV.API_PORT}`;
-        const response = await axios.get(`${baseUrl}/attendance`);
+        let response;
+        
+        try {
+            response = await axios.get(`${baseUrl}/attendance`);
+        } catch (error) {
+            throw errorTracker.setError(ERROR_STEPS.ATTENDANCE_HELPER, `HTTP request failed: ${error.message}`, { 
+                baseUrl, 
+                originalError: error.message,
+                status: error.response?.status,
+                statusText: error.response?.statusText
+            });
+        }
         
         if (response.data.success) {
             return {
@@ -16,13 +28,19 @@ async function getEnrichedAttendanceData() {
                 uniqueEmployees: response.data.uniqueEmployees
             };
         } else {
-            return {
-                success: false,
-                error: response.data.error || 'Failed to fetch attendance data'
-            };
+            throw errorTracker.setError(ERROR_STEPS.ATTENDANCE_HELPER_RESPONSE, `API returned error: ${response.data.error || 'Unknown error'}`, { 
+                apiResponse: response.data,
+                status: response.status
+            });
         }
     } catch (error) {
         console.error('❌ Error fetching enriched attendance data:', error.message);
+        
+        // If error tracker has error info, return it; otherwise return generic error
+        if (errorTracker.hasError()) {
+            return errorTracker.getErrorResponse();
+        }
+        
         return {
             success: false,
             error: error.message

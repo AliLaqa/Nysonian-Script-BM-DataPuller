@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const { processTodayShift } = require('./shiftUtils');
 const { getEnrichedAttendanceData } = require('../utils/attendanceHelper');
+const { errorTracker, ERROR_STEPS } = require('../utils/errorTracker');
 
 // Helper to get check-in record based on new criteria
 function getCheckInRecord(records, now) {
@@ -18,8 +19,7 @@ function getCheckInRecord(records, now) {
     if (hour < 12 || (hour === 0 && minute === 0)) {
         // 12am-12pm: use yesterday's entry after 12pm and before 12am
         const yesterdaysRecords = records.filter(r => {
-            const [d, m, y] = r.recordDate.split('/');
-            const recDate = new Date(y, m - 1, d);
+            const recDate = new Date(r.recordTime);
             return recDate.getFullYear() === yesterday.getFullYear() &&
                    recDate.getMonth() === yesterday.getMonth() &&
                    recDate.getDate() === yesterday.getDate();
@@ -35,8 +35,7 @@ function getCheckInRecord(records, now) {
     } else {
         // 12pm-12am: use today's entry after 12pm and before 12am
         const todaysRecords = records.filter(r => {
-            const [d, m, y] = r.recordDate.split('/');
-            const recDate = new Date(y, m - 1, d);
+            const recDate = new Date(r.recordTime);
             return recDate.getFullYear() === today.getFullYear() &&
                    recDate.getMonth() === today.getMonth() &&
                    recDate.getDate() === today.getDate();
@@ -53,25 +52,53 @@ function getCheckInRecord(records, now) {
     return checkIn;
 }
 
+// Format a record's recordDate to MM/DD/YYYY based on recordTime
+function toUSDate(record) {
+    if (!record) return record;
+    try {
+        if (record.recordTime) {
+            const dt = new Date(record.recordTime);
+            return { ...record, recordDate: dt.toLocaleDateString('en-US') };
+        }
+    } catch (_) {}
+    return record;
+}
+
 // GET /attendance/todayShift/checkin - Get shift check-in data (buffered logic)
 router.get('/checkin', async (req, res) => {
+    // Reset error tracker for new request
+    errorTracker.reset();
+    
     try {
         console.log('🔄 Fetching today\'s shift check-in data (buffered)...');
         const result = await getEnrichedAttendanceData();
-        if (!result.success) throw new Error(result.error);
+        if (!result.success) {
+            // If error tracker has error info, use it; otherwise create generic error
+            if (errorTracker.hasError()) {
+                throw errorTracker.getErrorResponse();
+            } else {
+                throw new Error(result.error || 'Failed to get enriched attendance data');
+            }
+        }
+        
         const now = new Date();
         const employeeRecords = {};
-        result.data.forEach(record => {
-            const key = record.deviceUserId;
-            if (!employeeRecords[key]) employeeRecords[key] = [];
-            employeeRecords[key].push(record);
-        });
+        
+        try {
+            result.data.forEach(record => {
+                const key = record.deviceUserId;
+                if (!employeeRecords[key]) employeeRecords[key] = [];
+                employeeRecords[key].push(record);
+            });
+        } catch (error) {
+            throw errorTracker.setError(ERROR_STEPS.SHIFT_CHECKIN_PROCESSING, `Failed to process employee records: ${error.message}`, { originalError: error.message });
+        }
         const checkInData = Object.entries(employeeRecords).map(([deviceUserId, records]) => {
             records.sort((a, b) => new Date(a.recordTime) - new Date(b.recordTime));
             const checkIn = getCheckInRecord(records, now);
             let checkInObj;
             if (checkIn) {
-                checkInObj = checkIn;
+                checkInObj = toUSDate(checkIn);
             } else {
                 checkInObj = {
                     userSn: null,
@@ -92,21 +119,34 @@ router.get('/checkin', async (req, res) => {
                 checkIn: checkInObj
             };
         });
-        res.json({
-            success: true,
-            timestamp: new Date().toISOString(),
-            message: 'Today\'s shift check-in data (buffered) retrieved successfully',
-            totalEmployeesInShift: checkInData.length,
-            data: checkInData //final checkin data that is also being passed to todayShift
-        });
+        try {
+            res.json({
+                success: true,
+                timestamp: new Date().toISOString(),
+                message: 'Today\'s shift check-in data (buffered) retrieved successfully',
+                totalEmployeesInShift: checkInData.length,
+                data: checkInData //final checkin data that is also being passed to todayShift
+            });
+        } catch (error) {
+            throw errorTracker.setError(ERROR_STEPS.SHIFT_CHECKIN_RESPONSE, `Failed to send response: ${error.message}`, { originalError: error.message });
+        }
     } catch (error) {
         console.error('❌ Today Shift Check-in API Error:', error);
-        res.status(500).json({
-            success: false,
-            timestamp: new Date().toISOString(),
-            error: error.message,
-            message: 'Failed to retrieve today\'s shift check-in data'
-        });
+        
+        // If error tracker has error info, use it; otherwise create generic error
+        const errorResponse = errorTracker.hasError() ? 
+            errorTracker.getErrorResponse() : 
+            {
+                success: false,
+                timestamp: new Date().toISOString(),
+                failedAt: ERROR_STEPS.SHIFT_CHECKIN,
+                failedBecause: error.message,
+                requestId: errorTracker.requestId,
+                error: error.message,
+                message: 'Failed to retrieve today\'s shift check-in data'
+            };
+        
+        res.status(500).json(errorResponse);
     }
 });
 

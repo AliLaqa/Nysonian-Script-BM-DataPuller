@@ -25,12 +25,12 @@ async function processTodayShift() {
                dateObj.getDate() === refDate.getDate();
     }
 
-    // Helper to parse record date (format: DD/MM/YYYY)
+    // Helper to parse record date (format: MM/DD/YYYY)
     function parseRecordDate(recordDateStr) {
         if (!recordDateStr) return null;
         const parts = recordDateStr.split('/');
         if (parts.length !== 3) return null;
-        return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+        return new Date(parseInt(parts[2]), parseInt(parts[0]) - 1, parseInt(parts[1]));
     }
 
     // Helper to check if a record is from a specific date

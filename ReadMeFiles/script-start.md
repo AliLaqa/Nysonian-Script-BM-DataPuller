@@ -226,7 +226,7 @@ GET http://YOUR_IP:3000/
       "employeeName": "Zeeshan Shad",
       "employeeRole": 14,
       "recordTime": "2025-05-28T17:41:58.000Z",
-      "recordTimeFormatted": "28/05/2025, 22:41:58",
+      "recordTimeFormatted": "05/28/2025, 22:41:58",
       "timeOnly": "22:41:58",
       "ip": "192.168.1.113"
     }

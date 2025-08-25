@@ -70,7 +70,7 @@ router.get('/date/:date', async (req, res) => {
             success: true,
             timestamp: new Date().toISOString(),
             requestedDate: requestedDate,
-            dateFormatted: new Date(requestedDate).toLocaleDateString('en-GB', { 
+            dateFormatted: new Date(requestedDate).toLocaleDateString('en-US', { 
                 weekday: 'long', 
                 year: 'numeric', 
                 month: 'long', 
@@ -109,7 +109,7 @@ router.get('/today', async (req, res) => {
             success: true,
             timestamp: new Date().toISOString(),
             requestedDate: todayStr,
-            dateFormatted: today.toLocaleDateString('en-GB', { 
+            dateFormatted: today.toLocaleDateString('en-US', { 
                 weekday: 'long', 
                 year: 'numeric', 
                 month: 'long', 

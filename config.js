@@ -6,7 +6,7 @@ const ENV = {
     // ZKTeco Device Configuration
     MB460_IP: process.env.MB460_IP || '192.168.1.113',
     MB460_PORT: parseInt(process.env.MB460_PORT) || 4370,
-    MB460_TIMEOUT: parseInt(process.env.MB460_TIMEOUT) || 10000,
+    MB460_TIMEOUT: parseInt(process.env.MB460_TIMEOUT) || 60000, // Increased to 60s for better reliability
     MB460_INPORT: parseInt(process.env.MB460_INPORT) || 4000,
     
     // API Server Configuration
@@ -67,8 +67,8 @@ const SHIFT = {
     DESCRIPTION: 'Shift spanning from 5 PM yesterday to 3 AM today',
     
     // Time formatting
-    TIME_FORMAT: 'en-GB',
-    DATE_FORMAT: 'en-GB'
+    TIME_FORMAT: 'en-US',
+    DATE_FORMAT: 'en-US'
 };
 
 // ZKTeco Device Configuration

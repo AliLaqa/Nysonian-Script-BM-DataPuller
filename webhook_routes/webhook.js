@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const axios = require('axios');
 const config = require('../config');
+const { errorTracker, ERROR_STEPS } = require('../utils/errorTracker');
 
 // Helper function to fetch attendance data from API
 async function fetchAttendanceData(date = null) {
@@ -452,18 +453,28 @@ router.get('/date/:date', async (req, res) => {
 
 // GET /attendance/webhook/todayShift - Trigger webhook with today's shift data (spanning midnight)
 router.get('/todayShift', async (req, res) => {
+    // Reset error tracker for new request
+    errorTracker.reset();
+    
     try {
         console.log('🚀 Starting today shift webhook process...');
         
         // Step 1: Fetch today's shift data
-        const shiftDataResult = await axios.get('http://127.0.0.1:3000/attendance/todayShift');
+        let shiftDataResult;
+        try {
+            shiftDataResult = await axios.get('http://127.0.0.1:3000/attendance/todayShift');
+        } catch (error) {
+            throw errorTracker.setError(ERROR_STEPS.WEBHOOK_SHIFT_FETCH, `Failed to fetch shift data: ${error.message}`, { 
+                url: 'http://127.0.0.1:3000/attendance/todayShift',
+                status: error.response?.status,
+                originalError: error.message
+            });
+        }
         
         if (!shiftDataResult.data.success) {
-            return res.status(500).json({
-                success: false,
-                timestamp: new Date().toISOString(),
-                error: 'Failed to fetch today\'s shift data',
-                details: shiftDataResult.data.error || 'Unknown error'
+            throw errorTracker.setError(ERROR_STEPS.WEBHOOK_SHIFT_FETCH, `Shift data API returned error: ${shiftDataResult.data.error || 'Unknown error'}`, { 
+                apiResponse: shiftDataResult.data,
+                status: shiftDataResult.status
             });
         }
 
@@ -492,57 +503,70 @@ router.get('/todayShift', async (req, res) => {
         }
 
         // Step 2: Send data to N8N webhook
-        const webhookResult = await sendToN8NWebhook(shiftDataResult.data, config.N8N.WEBHOOKS.TODAY_SHIFT_BM);
+        let webhookResult;
+        try {
+            webhookResult = await sendToN8NWebhook(shiftDataResult.data, config.N8N.WEBHOOKS.TODAY_SHIFT_BM);
+        } catch (error) {
+            throw errorTracker.setError(ERROR_STEPS.WEBHOOK_N8N_SEND, `Failed to send data to N8N webhook: ${error.message}`, { 
+                webhookUrl: config.N8N.WEBHOOKS.TODAY_SHIFT_BM,
+                originalError: error.message
+            });
+        }
         
         if (!webhookResult.success) {
-            const statusCode = Number.isInteger(webhookResult.statusCode) ? webhookResult.statusCode : 500;
-            return res.status(statusCode).json({
-                success: false,
-                timestamp: new Date().toISOString(),
-                error: 'Failed to send shift data to N8N webhook',
-                details: webhookResult.error,
+            throw errorTracker.setError(ERROR_STEPS.WEBHOOK_N8N_SEND, `N8N webhook returned error: ${webhookResult.error}`, { 
+                webhookResult,
                 statusCode: webhookResult.statusCode,
-                shiftDataFetched: true,
-                shiftDataSummary: {
-                    totalEmployeesInShift: shiftDataResult.data.shiftData?.employeeShiftSummary?.length || 0,
-                    shiftPeriod: shiftDataResult.data.shiftData?.shiftPeriod?.description || 'Unknown'
-                }
+                shiftDataFetched: true
             });
         }
         
         // Success response
-        res.json({
-            success: true,
-            timestamp: new Date().toISOString(),
-            message: 'Today\'s shift data successfully sent to N8N webhook',
-            process: {
-                step1: {
-                    status: 'completed',
-                    action: 'Fetched today\'s shift data (spanning midnight)',
-                    employeeCount: shiftDataResult.data.shiftData?.employeeShiftSummary?.length || 0,
-                    shiftPeriod: shiftDataResult.data.shiftData?.shiftPeriod?.description || 'Unknown'
+        try {
+            res.json({
+                success: true,
+                timestamp: new Date().toISOString(),
+                message: 'Today\'s shift data successfully sent to N8N webhook',
+                process: {
+                    step1: {
+                        status: 'completed',
+                        action: 'Fetched today\'s shift data (spanning midnight)',
+                        employeeCount: shiftDataResult.data.shiftData?.employeeShiftSummary?.length || 0,
+                        shiftPeriod: shiftDataResult.data.shiftData?.shiftPeriod?.description || 'Unknown'
+                    },
+                    step2: {
+                        status: 'completed',
+                        action: 'Sent shift data to N8N webhook',
+                        webhookUrl: webhookResult.webhookUrl,
+                        statusCode: webhookResult.statusCode
+                    }
                 },
-                step2: {
-                    status: 'completed',
-                    action: 'Sent shift data to N8N webhook',
-                    webhookUrl: webhookResult.webhookUrl,
-                    statusCode: webhookResult.statusCode
+                summary: {
+                    totalEmployeesInShift: shiftDataResult.data.shiftData?.employeeShiftSummary?.length || 0,
+                    shiftPeriod: shiftDataResult.data.shiftData?.shiftPeriod?.description || 'Unknown',
+                    webhookResponse: webhookResult.webhookResponse
                 }
-            },
-            summary: {
-                totalEmployeesInShift: shiftDataResult.data.shiftData?.employeeShiftSummary?.length || 0,
-                shiftPeriod: shiftDataResult.data.shiftData?.shiftPeriod?.description || 'Unknown',
-                webhookResponse: webhookResult.webhookResponse
-            }
-        });
+            });
+        } catch (error) {
+            throw errorTracker.setError(ERROR_STEPS.WEBHOOK_RESPONSE, `Failed to send response: ${error.message}`, { originalError: error.message });
+        }
         
     } catch (error) {
         console.error('❌ Today Shift Webhook API Error:', error);
-        res.status(500).json({
-            success: false,
-            timestamp: new Date().toISOString(),
-            error: error.message
-        });
+        
+        // If error tracker has error info, use it; otherwise create generic error
+        const errorResponse = errorTracker.hasError() ? 
+            errorTracker.getErrorResponse() : 
+            {
+                success: false,
+                timestamp: new Date().toISOString(),
+                failedAt: ERROR_STEPS.WEBHOOK_HANDLER,
+                failedBecause: error.message,
+                requestId: errorTracker.requestId,
+                error: error.message
+            };
+        
+        res.status(500).json(errorResponse);
     }
 });
 
