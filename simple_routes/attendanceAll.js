@@ -1,7 +1,7 @@
 // simple_routes/attendanceAll.js - Get all attendance logs with employee names (GET /attendance)
 const express = require('express');
 const router = express.Router();
-const { createZKInstance, safeDisconnect } = require('../utils/zkHelper');
+const { createZKInstance, safeDisconnect, getAttendanceDataWithRetry } = require('../utils/zkHelper');
 
 // Get all attendance logs with employee names
 router.get('/', async (req, res) => {
@@ -10,7 +10,22 @@ router.get('/', async (req, res) => {
     try {
         console.log('🔄 Fetching all attendance logs with employee names...');
         zkInstance = createZKInstance();
-        await zkInstance.createSocket();
+
+        // Establish socket connection with a small retry loop to handle transient WAN issues
+        const maxConnectRetries = 3;
+        let connected = false;
+        for (let attempt = 1; attempt <= maxConnectRetries && !connected; attempt++) {
+            try {
+                await zkInstance.createSocket();
+                connected = true;
+            } catch (e) {
+                console.log(`❌ Socket connect failed (attempt ${attempt}/${maxConnectRetries}): ${e.message}`);
+                if (attempt === maxConnectRetries) throw e;
+                const backoffMs = 1000 * attempt;
+                console.log(`⏳ Retrying connect in ${backoffMs}ms...`);
+                await new Promise(r => setTimeout(r, backoffMs));
+            }
+        }
 
         // Get all users first to map IDs to names
         const users = await zkInstance.getUsers();
@@ -23,8 +38,8 @@ router.get('/', async (req, res) => {
             };
         });
 
-        // Get all attendance logs
-        const logs = await zkInstance.getAttendances();
+        // Get all attendance logs with retries for network/device hiccups
+        const logs = await getAttendanceDataWithRetry(zkInstance, 3);
         
         // Enrich with employee names
         const enrichedLogs = logs.data.map(record => ({

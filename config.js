@@ -1,17 +1,36 @@
 // config.js - Centralized configuration for the ZKTeco Attendance Data Puller
 // This file centralizes all important variables and constants to avoid duplication
+require('dotenv').config();
+
+// Helper functions to enforce presence and type of required env vars
+function requireEnvVar(name) {
+    const value = process.env[name];
+    if (value === undefined || value === null || String(value).trim() === '') {
+        throw new Error(`Missing required environment variable: ${name}`);
+    }
+    return value;
+}
+
+function requireIntEnvVar(name) {
+    const raw = requireEnvVar(name);
+    const parsed = parseInt(raw, 10);
+    if (Number.isNaN(parsed)) {
+        throw new Error(`Environment variable ${name} must be a valid integer. Received: ${raw}`);
+    }
+    return parsed;
+}
 
 // Environment Variables (from .env file)
 const ENV = {
     // ZKTeco Device Configuration
-    MB460_IP: process.env.MB460_IP || '192.168.1.113',
-    MB460_PORT: parseInt(process.env.MB460_PORT) || 4370,
-    MB460_TIMEOUT: parseInt(process.env.MB460_TIMEOUT) || 60000, // Increased to 60s for better reliability
-    MB460_INPORT: parseInt(process.env.MB460_INPORT) || 4000,
+    MB460_IP: requireEnvVar('MB460_IP'),
+    MB460_PORT: requireIntEnvVar('MB460_PORT'),
+    MB460_TIMEOUT: requireIntEnvVar('MB460_TIMEOUT'),
+    MB460_INPORT: requireIntEnvVar('MB460_INPORT'),
     
     // API Server Configuration
-    API_HOST: process.env.API_HOST || '0.0.0.0',
-    API_PORT: parseInt(process.env.API_PORT) || 3000
+    API_HOST: requireEnvVar('API_HOST'),
+    API_PORT: requireIntEnvVar('API_PORT')
 };
 
 // API Configuration
