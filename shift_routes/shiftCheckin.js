@@ -71,60 +71,106 @@ router.get('/checkin', async (req, res) => {
     
     try {
         console.log('🔄 Fetching today\'s shift check-in data (buffered)...');
-        const result = await getEnrichedAttendanceData();
-        if (!result.success) {
-            // If error tracker has error info, use it; otherwise create generic error
-            if (errorTracker.hasError()) {
-                throw errorTracker.getErrorResponse();
-            } else {
-                throw new Error(result.error || 'Failed to get enriched attendance data');
+        
+        // Retry mechanism for getting valid check-in data
+        const maxRetries = 5;
+        let retryCount = 0;
+        let checkInData = [];
+        let hasValidData = false;
+        
+        while (retryCount < maxRetries && !hasValidData) {
+            retryCount++;
+            console.log(`📥 Attempt ${retryCount}/${maxRetries}: Fetching fresh attendance data for check-ins...`);
+            
+            const result = await getEnrichedAttendanceData();
+            if (!result.success) {
+                // If error tracker has error info, use it; otherwise create generic error
+                if (errorTracker.hasError()) {
+                    throw errorTracker.getErrorResponse();
+                } else {
+                    throw new Error(result.error || 'Failed to get enriched attendance data');
+                }
             }
-        }
-        
-        const now = new Date();
-        const employeeRecords = {};
-        
-        try {
-            result.data.forEach(record => {
-                const key = record.deviceUserId;
-                if (!employeeRecords[key]) employeeRecords[key] = [];
-                employeeRecords[key].push(record);
-            });
-        } catch (error) {
-            throw errorTracker.setError(ERROR_STEPS.SHIFT_CHECKIN_PROCESSING, `Failed to process employee records: ${error.message}`, { originalError: error.message });
-        }
-        const checkInData = Object.entries(employeeRecords).map(([deviceUserId, records]) => {
-            records.sort((a, b) => new Date(a.recordTime) - new Date(b.recordTime));
-            const checkIn = getCheckInRecord(records, now);
-            let checkInObj;
-            if (checkIn) {
-                checkInObj = toUSDate(checkIn);
-            } else {
-                checkInObj = {
-                    userSn: null,
+            
+            const now = new Date();
+            const employeeRecords = {};
+            
+            try {
+                result.data.forEach(record => {
+                    const key = record.deviceUserId;
+                    if (!employeeRecords[key]) employeeRecords[key] = [];
+                    employeeRecords[key].push(record);
+                });
+            } catch (error) {
+                throw errorTracker.setError(ERROR_STEPS.SHIFT_CHECKIN_PROCESSING, `Failed to process employee records: ${error.message}`, { originalError: error.message });
+            }
+            
+            checkInData = Object.entries(employeeRecords).map(([deviceUserId, records]) => {
+                records.sort((a, b) => new Date(a.recordTime) - new Date(b.recordTime));
+                const checkIn = getCheckInRecord(records, now);
+                let checkInObj;
+                if (checkIn) {
+                    checkInObj = toUSDate(checkIn);
+                } else {
+                    checkInObj = {
+                        userSn: null,
+                        deviceUserId,
+                        employeeName: records[0].employeeName,
+                        employeeRole: records[0].employeeRole,
+                        recordTime: null,
+                        recordDate: null,
+                        recordTimeFormatted: null,
+                        timeOnly: null,
+                        ip: (records[0] && records[0].ip) ? records[0].ip : null
+                    };
+                }
+                return {
                     deviceUserId,
                     employeeName: records[0].employeeName,
                     employeeRole: records[0].employeeRole,
-                    recordTime: null,
-                    recordDate: null,
-                    recordTimeFormatted: null,
-                    timeOnly: null,
-                    ip: (records[0] && records[0].ip) ? records[0].ip : null
+                    checkIn: checkInObj
                 };
+            });
+            
+            // Check if we have valid check-in data (at least some check-ins with actual times)
+            const validRecords = checkInData.filter(emp => 
+                emp.checkIn && emp.checkIn.recordTime
+            );
+            
+            if (validRecords.length > 0) {
+                hasValidData = true;
+                console.log(`✅ Found ${validRecords.length} employees with valid check-in data on attempt ${retryCount}`);
+            } else {
+                console.log(`⚠️ Attempt ${retryCount}: No valid check-in data found. Total employees: ${checkInData.length}, Valid records: ${validRecords.length}`);
+                
+                if (retryCount < maxRetries) {
+                    const waitTime = Math.min(2000 * Math.pow(2, retryCount - 1), 10000); // Exponential backoff, max 10s
+                    console.log(`⏳ Waiting ${waitTime}ms before retry...`);
+                    await new Promise(resolve => setTimeout(resolve, waitTime));
+                }
             }
-            return {
-                deviceUserId,
-                employeeName: records[0].employeeName,
-                employeeRole: records[0].employeeRole,
-                checkIn: checkInObj
-            };
-        });
+        }
+        
+        // Log final result
+        if (hasValidData) {
+            console.log(`🎉 Successfully retrieved check-in data after ${retryCount} attempt(s)`);
+        } else {
+            console.log(`❌ Failed to get valid check-in data after ${maxRetries} attempts. Returning available data.`);
+        }
+        
         try {
             res.json({
                 success: true,
                 timestamp: new Date().toISOString(),
-                message: 'Today\'s shift check-in data (buffered) retrieved successfully',
+                message: hasValidData ? 
+                    `Today's shift check-in data (buffered) retrieved successfully after ${retryCount} attempt(s)` :
+                    `Today's shift check-in data retrieved but no valid check-in times found after ${maxRetries} attempts`,
                 totalEmployeesInShift: checkInData.length,
+                retryAttempts: retryCount,
+                hasValidData: hasValidData,
+                validRecordsCount: checkInData.filter(emp => 
+                    emp.checkIn && emp.checkIn.recordTime
+                ).length,
                 data: checkInData //final checkin data that is also being passed to todayShift
             });
         } catch (error) {

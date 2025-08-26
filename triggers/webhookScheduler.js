@@ -1,5 +1,5 @@
 const axios = require('axios');
-const config = require('../config');
+require('dotenv').config();
 
 /**
  * Webhook Scheduler
@@ -7,7 +7,10 @@ const config = require('../config');
  */
 class WebhookScheduler {
     constructor() {
-        this.webhookUrl = `${config.API.BASE_URL}${config.API.ENDPOINTS.WEBHOOK_TODAY}`;
+        // Use real .env variables directly for the webhook URL
+        const apiHost = process.env.API_HOST === '0.0.0.0' ? '127.0.0.1' : process.env.API_HOST;
+        const apiPort = process.env.API_PORT;
+        this.webhookUrl = `http://${apiHost}:${apiPort}/attendance/webhook/todayShift`;
         this.intervalId = null;
     }
 
@@ -17,11 +20,14 @@ class WebhookScheduler {
      */
     init() {
         console.log('\n🚀 Initializing Webhook Scheduler...');
+        console.log(`🔗 Webhook URL: ${this.webhookUrl}`);
+        console.log(`🌐 API Host: ${process.env.API_HOST}`);
+        console.log(`🔌 API Port: ${process.env.API_PORT}`);
         
-        // Call /webhook/today automatically on server start
+        // Call /webhook/todayShift automatically on server start
         this.triggerInitialWebhook();
         
-        // Set up scheduled webhook calls every 30 minutes
+        // Set up scheduled webhook calls every 15 minutes
         this.startScheduledWebhooks();
         
         console.log('✅ Webhook Scheduler initialized successfully');
@@ -35,35 +41,35 @@ class WebhookScheduler {
         
         axios.get(this.webhookUrl)
             .then(response => {
-                console.log('✅ Initial /attendance/webhook/today call succeeded:', response.data.message || response.data);
+                console.log('✅ Initial /attendance/webhook/todayShift call succeeded:', response.data.message || response.data);
             })
             .catch(error => {
                 if (error.response) {
-                    console.error('❌ Initial /attendance/webhook/today call failed:', error.response.data);
+                    console.error('❌ Initial /attendance/webhook/todayShift call failed:', error.response.data);
                 } else {
-                    console.error('❌ Initial /attendance/webhook/today call error:', error.message);
+                    console.error('❌ Initial /attendance/webhook/todayShift call error:', error.message);
                 }
             });
     }
 
     /**
-     * Start scheduled webhook calls every 30 minutes
+     * Start scheduled webhook calls every 15 minutes
      */
     startScheduledWebhooks() {
-        const intervalMs = 30 * 60 * 1000; // 30 minutes in milliseconds
+        const intervalMs = 15 * 60 * 1000; // 15 minutes in milliseconds
         
         this.intervalId = setInterval(() => {
             console.log(`\n🔔 Scheduled webhook: GET ${this.webhookUrl}`);
             
             axios.get(this.webhookUrl)
                 .then(response => {
-                    console.log('✅ Scheduled /attendance/webhook/today call succeeded:', response.data.message || response.data);
+                    console.log('✅ Scheduled /attendance/webhook/todayShift call succeeded:', response.data.message || response.data);
                 })
                 .catch(error => {
                     if (error.response) {
-                        console.error('❌ Scheduled /attendance/webhook/today call failed:', error.response.data);
+                        console.error('❌ Scheduled /attendance/webhook/todayShift call failed:', error.response.data);
                     } else {
-                        console.error('❌ Scheduled /attendance/webhook/today call error:', error.message);
+                        console.error('❌ Scheduled /attendance/webhook/todayShift call error:', error.message);
                     }
                 });
         }, intervalMs);

@@ -26,12 +26,15 @@ const ENV = {
     MB460_IP: requireEnvVar('MB460_IP'),
     MB460_PORT: requireIntEnvVar('MB460_PORT'),
     MB460_TIMEOUT: requireIntEnvVar('MB460_TIMEOUT'),
-    MB460_INPORT: requireIntEnvVar('MB460_INPORT'),
+    MB460_INPORT: requireEnvVar('MB460_INPORT'),
     
     // API Server Configuration
     API_HOST: requireEnvVar('API_HOST'),
     API_PORT: requireIntEnvVar('API_PORT')
 };
+
+// Detect if running on Fly.io (when API_HOST is 0.0.0.0)
+const IS_DEPLOYED = ENV.API_HOST === '0.0.0.0';
 
 // API Configuration
 const API = {
@@ -79,11 +82,11 @@ const N8N = {
 // Shift Configuration
 const SHIFT = {
     // Shift time boundaries (24-hour format)
-    START_HOUR: 17, // 5 PM
-    END_HOUR: 3,    // 3 AM
+    START_HOUR: 18, // 6 PM
+    END_HOUR: 2,    // 2 AM
     
     // Shift description
-    DESCRIPTION: 'Shift spanning from 5 PM yesterday to 3 AM today',
+    DESCRIPTION: 'Shift spanning from 6 PM yesterday to 2 AM today',
     
     // Time formatting
     TIME_FORMAT: 'en-US',

@@ -6,7 +6,14 @@ const { errorTracker, ERROR_STEPS } = require('./errorTracker');
 // Get enriched attendance data using the attendance API
 async function getEnrichedAttendanceData() {
     try {
-        const baseUrl = `http://${config.ENV.API_HOST}:${config.ENV.API_PORT}`;
+        // Use localhost for internal API calls when deployed on Fly.io
+        // Check if we're running on Fly.io by looking at the host binding
+        const baseUrl = config.ENV.API_HOST === '0.0.0.0' 
+            ? 'http://127.0.0.1:3000' 
+            : `http://${config.ENV.API_HOST}:${config.ENV.API_PORT}`;
+            
+        console.log(`🔗 Using baseUrl: ${baseUrl} (API_HOST: ${config.ENV.API_HOST})`);
+            
         let response;
         
         try {
@@ -51,7 +58,11 @@ async function getEnrichedAttendanceData() {
 // Get filtered attendance data using the attendance/filter API
 async function getFilteredAttendanceData(startDate, endDate) {
     try {
-        const baseUrl = `http://${config.ENV.API_HOST}:${config.ENV.API_PORT}`;
+        // Use localhost for internal API calls when deployed on Fly.io
+        // Check if we're running on Fly.io by looking at the host binding
+        const baseUrl = config.ENV.API_HOST === '0.0.0.0' 
+            ? 'http://127.0.0.1:3000' 
+            : `http://${config.ENV.API_HOST}:${config.ENV.API_PORT}`;
         
         // Use new path parameter format
         const response = await axios.get(`${baseUrl}/attendance/filter/${startDate}&${endDate}`);

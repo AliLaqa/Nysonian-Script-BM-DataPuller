@@ -492,6 +492,25 @@ router.get('/todayShift', async (req, res) => {
             });
         }
 
+        // Check if the data has valid check-in/check-out times
+        const hasValidData = shiftDataResult.data.summary?.hasValidData || false;
+        const validRecordsCount = shiftDataResult.data.summary?.validRecordsCount || 0;
+        
+        if (!hasValidData || validRecordsCount === 0) {
+            console.log(`⚠️ Not sending data to n8n: hasValidData=${hasValidData}, validRecordsCount=${validRecordsCount}`);
+            return res.status(200).json({
+                success: false,
+                timestamp: new Date().toISOString(),
+                error: 'No valid shift data available to send',
+                details: `No valid check-in/check-out times found. Total employees: ${list.length}, Valid records: ${validRecordsCount}`,
+                summary: {
+                    totalEmployeesInShift: list.length,
+                    hasValidData: hasValidData,
+                    validRecordsCount: validRecordsCount
+                }
+            });
+        }
+
         // Step 2: Send data to N8N webhook
         let webhookResult;
         try {
