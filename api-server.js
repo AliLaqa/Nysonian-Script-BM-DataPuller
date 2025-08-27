@@ -1,4 +1,4 @@
-// api-server.js - Express API server for n8n integration (Modular Version)
+// api-server.js - Express API server for n8n integration (Multi-Device Version)
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -11,6 +11,7 @@ const attendanceAllRoutes = require('./simple_routes/attendanceAll');
 const attendanceFilterRoutes = require('./simple_routes/attendanceFilter');
 const attendanceWithNamesRoutes = require('./simple_routes/attendanceWithNames');
 const deviceRoutes = require('./simple_routes/device');
+const devicesRoutes = require('./simple_routes/devices'); // New multi-device routes
 const webhookRoutes = require('./webhook_routes/webhook');
 const shiftDataRoutes = require('./shift_routes/shiftData');
 const shiftCheckinRoutes = require('./shift_routes/shiftCheckin');
@@ -37,7 +38,14 @@ app.use((req, res, next) => {
 // Route mounting
 app.use('/attendance/apiDocumentation', rootRoutes); // Root API documentation now under /attendance/apiDocumentation
 app.use('/attendance/health', healthRoutes);        // Health check endpoints now under /attendance/health
-app.use('/attendance', attendanceAllRoutes);    // Get all attendance logs
+app.use('/devices', devicesRoutes); // Multi-device management endpoints (must come before device-specific routes)
+
+// Legacy attendance endpoint redirect
+app.get('/attendance', (req, res) => {
+    res.redirect('/pk01/attendance');
+});
+
+app.use('/', attendanceAllRoutes);    // Device-specific endpoints at root level (/:prefix/attendance)
 app.use('/attendance/filter', attendanceFilterRoutes); // Get filtered attendance logs
 app.use('/attendance', attendanceWithNamesRoutes); // Attendance with employee names
 app.use('/attendance', deviceRoutes); // Device information endpoints now under /attendance/device
@@ -60,7 +68,7 @@ app.use((err, req, res, next) => {
 // Start server The function you pass to app.listen runs once when the server is ready and listening for requests.
 // So the function is executed immediately when the server is ready.
 const server = app.listen(PORT, HOST, () => {
-    console.log(`\n🚀 ZKTeco MB460 API Server started!`);
+    console.log(`\n🚀 ZKTeco Multi-Device API Server started!`);
     console.log(`📍 Server: http://${HOST}:${PORT}`);
     console.log(`🔗 Health Check: http://${HOST}:${PORT}/attendance/health`);
     console.log(`📊 Attendance API: http://${HOST}:${PORT}/attendance`);
@@ -68,10 +76,26 @@ const server = app.listen(PORT, HOST, () => {
     console.log(`📱 Device Info: http://${HOST}:${PORT}/attendance/device/info`);
     console.log(`🔗 Webhook API: http://${HOST}:${PORT}/attendance/webhook`);
     console.log(`🕐 Today Shift API: http://${HOST}:${PORT}/attendance/todayShift`);
-    // console.log(`📋 Log Viewer API: http://${HOST}:${PORT}/attendance/logs/help`);
+    
+    // Multi-device endpoints
+    console.log(`\n🌍 Multi-Device Endpoints:`);
+    console.log(`   📋 All Devices: http://${HOST}:${PORT}/devices`);
+    console.log(`   🔍 Device Health: http://${HOST}:${PORT}/devices/health`);
+    console.log(`   📊 All Devices Attendance: http://${HOST}:${PORT}/devices/attendance/all`);
+    
+    // Device-specific endpoints
+    const devices = config.ENV.DEVICES;
+    console.log(`\n📱 Device-Specific Endpoints:`);
+    devices.forEach(device => {
+        console.log(`   ${device.location} (${device.id}): http://${HOST}:${PORT}/${device.id}/attendance`);
+    });
+    
     console.log(`\n⚙️ Configuration:`);
-    console.log(`   MB460 Device: ${config.ENV.MB460_IP}:${config.ENV.MB460_PORT}`);
-    console.log(`\n🎯 Ready for n8n integration!`);
+    console.log(`   Total Devices: ${devices.length}`);
+    devices.forEach(device => {
+        console.log(`   ${device.id}: ${device.ip}:${device.port} (${device.location})`);
+    });
+    console.log(`\n🎯 Ready for multi-device n8n integration!`);
 
     // Initialize webhook scheduler
     const webhookScheduler = new WebhookScheduler();

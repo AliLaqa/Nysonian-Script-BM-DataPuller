@@ -20,17 +20,84 @@ function requireIntEnvVar(name) {
     return parsed;
 }
 
+// Multi-device configuration with location-based prefixes
+function getDeviceConfigs() {
+    const devices = [];
+    
+    // Legacy single device support (for backward compatibility)
+    if (process.env.MB460_IP) {
+        devices.push({
+            id: 'pk01',
+            prefix: 'pk01',
+            name: 'ZKTeco MB460 (Pakistan Primary)',
+            model: 'MB460',
+            ip: requireEnvVar('MB460_IP'),
+            port: requireIntEnvVar('MB460_PORT'),
+            timeout: requireIntEnvVar('MB460_TIMEOUT'),
+            inport: requireEnvVar('MB460_INPORT'),
+            location: 'Pakistan',
+            country: 'PK',
+            description: 'Primary biometric device in Pakistan'
+        });
+    }
+    
+    // Location-based device configuration
+    const deviceConfigs = [
+        // Pakistan Devices
+        { prefix: 'pk01', country: 'PK', location: 'Pakistan' },
+        { prefix: 'pk02', country: 'PK', location: 'Pakistan' },
+        { prefix: 'pk03', country: 'PK', location: 'Pakistan' },
+        
+        // USA Devices
+        { prefix: 'us01', country: 'US', location: 'USA' },
+        { prefix: 'us02', country: 'US', location: 'USA' },
+        { prefix: 'us03', country: 'US', location: 'USA' },
+        
+        // UK Devices (if needed)
+        { prefix: 'uk01', country: 'UK', location: 'United Kingdom' },
+        { prefix: 'uk02', country: 'UK', location: 'United Kingdom' },
+        
+        // UAE Devices (if needed)
+        { prefix: 'ae01', country: 'AE', location: 'UAE' },
+        { prefix: 'ae02', country: 'AE', location: 'UAE' }
+    ];
+    
+    deviceConfigs.forEach(config => {
+        const ip = process.env[`${config.prefix.toUpperCase()}_IP`];
+        const port = process.env[`${config.prefix.toUpperCase()}_PORT`];
+        
+        if (ip && port) {
+            devices.push({
+                id: config.prefix,
+                prefix: config.prefix,
+                name: process.env[`${config.prefix.toUpperCase()}_NAME`] || `ZKTeco Device ${config.prefix.toUpperCase()}`,
+                model: process.env[`${config.prefix.toUpperCase()}_MODEL`] || 'MB460',
+                ip: ip,
+                port: parseInt(port, 10),
+                timeout: parseInt(process.env[`${config.prefix.toUpperCase()}_TIMEOUT`] || '10000', 10),
+                inport: process.env[`${config.prefix.toUpperCase()}_INPORT`] || '4000',
+                location: config.location,
+                country: config.country,
+                description: process.env[`${config.prefix.toUpperCase()}_DESCRIPTION`] || `${config.location} Device ${config.prefix}`
+            });
+        }
+    });
+    
+    if (devices.length === 0) {
+        throw new Error('No biometric devices configured. Please set at least one device configuration.');
+    }
+    
+    return devices;
+}
+
 // Environment Variables (from .env file)
 const ENV = {
-    // ZKTeco Device Configuration
-    MB460_IP: requireEnvVar('MB460_IP'),
-    MB460_PORT: requireIntEnvVar('MB460_PORT'),
-    MB460_TIMEOUT: requireIntEnvVar('MB460_TIMEOUT'),
-    MB460_INPORT: requireEnvVar('MB460_INPORT'),
-    
     // API Server Configuration
     API_HOST: requireEnvVar('API_HOST'),
-    API_PORT: requireIntEnvVar('API_PORT')
+    API_PORT: requireIntEnvVar('API_PORT'),
+    
+    // Multi-device configuration
+    DEVICES: getDeviceConfigs()
 };
 
 // Detect if running on Fly.io (when API_HOST is 0.0.0.0)
@@ -45,14 +112,24 @@ const API = {
     // Endpoints
     ENDPOINTS: {
         HEALTH: '/health',
-        ATTENDANCE: '/attendance',
+        ATTENDANCE: '/attendance', // Legacy endpoint (maps to pk01)
         ATTENDANCE_TODAY: '/attendance/today',
         ATTENDANCE_WITH_NAMES: '/attendanceWithNames',
         TODAY_SHIFT: '/todayShift',
         WEBHOOK: '/attendance/webhook',
         WEBHOOK_TODAY: '/attendance/webhook/today',
         WEBHOOK_TODAY_SHIFT: '/attendance/webhook/todayShift',
-        DEVICE: '/device'
+        DEVICE: '/device',
+        
+        // Multi-device endpoints (location-based)
+        DEVICES: '/devices',
+        DEVICE_ATTENDANCE: '/:prefix/attendance',
+        DEVICE_INFO: '/:prefix/device/info',
+        DEVICE_HEALTH: '/:prefix/health',
+        ALL_DEVICES_ATTENDANCE: '/attendance/all-devices',
+        
+        // Legacy compatibility endpoints
+        LEGACY_ATTENDANCE: '/attendance' // Maps to pk01/attendance
     },
     
     // Timeouts
@@ -61,7 +138,7 @@ const API = {
     // Headers
     HEADERS: {
         'Content-Type': 'application/json',
-        'User-Agent': 'ZKTeco-MB460-API/1.0'
+        'User-Agent': 'ZKTeco-Multi-Location-API/1.0'
     }
 };
 
@@ -69,12 +146,15 @@ const API = {
 const N8N = {
     WEBHOOKS: {
         TODAY_BM: 'https://nysonian.app.n8n.cloud/webhook/today-bm',
-        TODAY_SHIFT_BM: 'https://nysonian.app.n8n.cloud/webhook/today-shift-bm'
+        TODAY_SHIFT_BM: 'https://nysonian.app.n8n.cloud/webhook/today-shift-bm',
+        ALL_DEVICES: 'https://nysonian.app.n8n.cloud/webhook/all-devices',
+        PAKISTAN_DEVICES: 'https://nysonian.app.n8n.cloud/webhook/pakistan-devices',
+        USA_DEVICES: 'https://nysonian.app.n8n.cloud/webhook/usa-devices'
     },
     
     // Webhook payload structure
     PAYLOAD: {
-        SOURCE: 'ZKTeco-MB460-API',
+        SOURCE: 'ZKTeco-Multi-Location-API',
         VERSION: '1.0'
     }
 };
@@ -93,21 +173,31 @@ const SHIFT = {
     DATE_FORMAT: 'en-US'
 };
 
-// ZKTeco Device Configuration
-const DEVICE = {
+// Device Management Configuration
+const DEVICE_MANAGEMENT = {
     // Connection settings
-    IP: ENV.MB460_IP,
-    PORT: ENV.MB460_PORT,
-    TIMEOUT: ENV.MB460_TIMEOUT,
-    INPORT: ENV.MB460_INPORT,
+    MAX_RETRIES: 3,
+    RETRY_DELAY: 1000, // 1 second
+    CONNECTION_TIMEOUT: 10000, // 10 seconds
     
     // Device identification
-    NAME: 'ZKTeco MB460',
-    MODEL: 'MB460',
+    DEFAULT_MODEL: 'MB460',
+    DEFAULT_INPORT: '4000',
     
-    // Connection retry settings
-    MAX_RETRIES: 3,
-    RETRY_DELAY: 1000 // 1 second
+    // Parallel processing
+    MAX_CONCURRENT_DEVICES: 3, // Process max 3 devices simultaneously
+    
+    // Health check settings
+    HEALTH_CHECK_INTERVAL: 300000, // 5 minutes
+    DEVICE_OFFLINE_THRESHOLD: 3, // Mark device offline after 3 failed attempts
+    
+    // Location prefixes
+    LOCATION_PREFIXES: {
+        'PK': 'pk', // Pakistan
+        'US': 'us', // USA
+        'UK': 'uk', // United Kingdom
+        'AE': 'ae'  // UAE
+    }
 };
 
 // Logging Configuration
@@ -143,7 +233,10 @@ const ERRORS = {
     WEBHOOK_DELIVERY: 'Failed to send data to N8N webhook',
     INVALID_DATE: 'Invalid date format provided',
     TIMEOUT: 'Request timed out',
-    UNKNOWN: 'An unknown error occurred'
+    UNKNOWN: 'An unknown error occurred',
+    DEVICE_NOT_FOUND: 'Device not found',
+    DEVICE_OFFLINE: 'Device is offline or unreachable',
+    INVALID_PREFIX: 'Invalid device prefix'
 };
 
 // Success Messages
@@ -151,7 +244,7 @@ const SUCCESS = {
     DEVICE_CONNECTION: 'Successfully connected to ZKTeco device',
     DATA_FETCH: 'Attendance data retrieved successfully',
     WEBHOOK_DELIVERY: 'Data sent to N8N webhook successfully',
-    SERVICE_START: 'ZKTeco Attendance Server started successfully'
+    SERVICE_START: 'ZKTeco Multi-Location Attendance Server started successfully'
 };
 
 // Export all configurations
@@ -160,7 +253,7 @@ module.exports = {
     API,
     N8N,
     SHIFT,
-    DEVICE,
+    DEVICE_MANAGEMENT,
     LOGGING,
     ERRORS,
     SUCCESS
